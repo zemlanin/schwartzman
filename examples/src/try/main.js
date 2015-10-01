@@ -8,7 +8,7 @@ var Component = React.createClass({
 })
 
 var element = React.createElement(Component, {
-  className: 'ax',
+  name: 'Jason',
 })
 
 console.log(React.renderToStaticMarkup(element))

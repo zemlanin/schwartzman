@@ -7,7 +7,7 @@ For example, this template:
 ```mustache
 <!-- tmpl.jsx.mustache -->
 <div>
-  <b class=x></b>
+  <b class=x>{{name}}</b>
   <i data-x="x"></i>
 </div>
 ```
@@ -19,7 +19,11 @@ module.exports = function (props) {
   return (
     React.DOM.div(
       {},
-      React.DOM.b({"className":"x"}), React.DOM.i({"data-x":"x"})
+      React.DOM.b(
+        {"className":"x"},
+        props.name
+      ),
+      React.DOM.i({"data-x":"x"})
     )
   )
 }

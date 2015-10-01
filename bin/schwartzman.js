@@ -20,7 +20,16 @@ function compileAny(nodesTree, varVar) {
   }
 }
 
-function compileMustache(nodesTree, varVar) {}
+function compileMustache(nodesTree, varVar) {
+  var result;
+
+  if (nodesTree.variable_node) {
+    result = varVar + '.' + nodesTree.variable_node.var_name.text;
+  } else {
+    result = 'null';
+  }
+  return result;
+}
 
 function prerareStyle(styleString) {
   return styleString; // TODO
@@ -90,6 +99,6 @@ var actions = {
 
 module.exports = function (content) {
   this.cacheable();
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n\n    module.exports = function (p) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions }), 'p') + ')\n    }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions }), 'props') + ')\n    }\n  ';
 };
 

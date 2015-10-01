@@ -9,7 +9,16 @@ function compileAny(nodesTree, varVar) {
   }
 }
 
-function compileMustache(nodesTree, varVar) {}
+function compileMustache(nodesTree, varVar) {
+  var result
+
+  if (nodesTree.variable_node) {
+    result = varVar + '.' + nodesTree.variable_node.var_name.text
+  } else {
+    result = 'null'
+  }
+  return result
+}
 
 function prerareStyle(styleString) {
   return styleString // TODO
@@ -77,8 +86,8 @@ module.exports = function(content) {
     // compiled with schwartzman
     var React = require('react')
 
-    module.exports = function (p) {
-      return (${compileDOM(parse(content, {actions}), 'p')})
+    module.exports = function (props) {
+      return (${compileDOM(parse(content, {actions}), 'props')})
     }
   `
 };
