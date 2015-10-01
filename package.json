@@ -19,5 +19,8 @@
     "react": "^0.13.3",
     "webpack": "^1.12.2"
   },
-  "bin": "./bin/schwartzman.js"
+  "bin": "./bin/schwartzman.js",
+  "dependencies": {
+    "lodash.assign": "^3.2.0"
+  }
 }
