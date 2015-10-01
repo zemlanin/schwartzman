@@ -1,8 +1,14 @@
+import React from 'react'
 import tmpl from './tmpl.jsx.mustache'
 
-var f = x => x + 1
+var Component = React.createClass({
+  render: function() {
+    return tmpl(this.props)
+  }
+})
 
-console.log(tmpl({
-  x: 'x',
-  l: ['a', 'b', 'c'],
-}))
+var element = React.createElement(Component, {
+  className: 'ax',
+})
+
+console.log(React.renderToStaticMarkup(element))

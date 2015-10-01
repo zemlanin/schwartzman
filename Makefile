@@ -1,9 +1,14 @@
 bin = $(shell npm bin)
 babel = $(bin)/babel
 webpack = $(bin)/webpack
+canopy = $(bin)/canopy
 
-bin/schwartzman.js: src/schwartzman.js
+bin/schwartzman.js: src/schwartzman.js bin/grammar.js
 	$(babel) src/schwartzman.js > $@
+
+bin/grammar.js: src/grammar.peg
+	$(canopy) src/grammar.peg --lang js
+	mv src/grammar.js bin
 
 .PHONE: examples
 examples: examples/src/*/* bin/schwartzman.js

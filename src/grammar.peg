@@ -1,0 +1,20 @@
+grammar Schwartzman
+
+dom_node            <- (open_html_tag nodes:expr_node* close_html_tag) / contained_html_tag
+open_html_tag       <- "<" html_tag attrs:dom_attr* ">" whitespace?
+contained_html_tag  <- "<" html_tag attrs:dom_attr* "/>" whitespace?
+close_html_tag      <- "</" html_tag ">" whitespace?
+html_tag            <- [a-z]+
+dom_attr            <- var_name "=" var_name
+
+expr_node <- dom_node / mustache_node
+mustache_node <- (variable_node whitespace?) # TODO: NonEmptyListNode | NonFalseValueNode | InvertedSectionNode | CommentsNode | PartialNode | SetDelimiterNode | LambdaNode
+
+variable_node <- regular_variable_node / escaped_variable_node
+regular_variable_node <- "{{" whitespace var_name whitespace "}}"
+escaped_variable_node <- "{{&" whitespace var_name whitespace "}}" / "{{{" whitespace var_name whitespace "}}}"
+var_name <- [a-z] alphanum?
+letter <- [a-z]
+alphanum <- "."? [a-z0-9]+
+
+whitespace <- [ \s]*
