@@ -15,14 +15,14 @@ For example, this template:
 compiles to this:
 
 ```js
-  module.exports = function (props) {
-    return (
-      React.DOM.div(
-        {},
-        React.DOM.b({"className":"x"}), React.DOM.i({"data-x":"x"})
-      )
+module.exports = function (props) {
+  return (
+    React.DOM.div(
+      {},
+      React.DOM.b({"className":"x"}), React.DOM.i({"data-x":"x"})
     )
-  }
+  )
+}
 ```
 
 ## setup
