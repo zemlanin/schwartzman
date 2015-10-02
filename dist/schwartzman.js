@@ -1,5 +1,9 @@
 'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+
 var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -39,6 +43,9 @@ function prepareAttr(_ref2) {
   var name = _ref2.name;
   var value = _ref2.value;
 
+  if (!name || !value) {
+    return {};
+  }
   var attrKey = name.text;
   var attrValue = value.text;
 
@@ -97,8 +104,22 @@ var actions = {
   }
 };
 
-module.exports = function (content) {
+var lowLevel = {
+  compileAny: compileAny,
+  compileDOM: compileDOM,
+  compileMustache: compileMustache,
+  prerareStyle: prerareStyle,
+  prepareAttr: prepareAttr,
+  PEGactions: actions,
+  PEGparse: _grammar.parse
+};
+
+exports.lowLevel = lowLevel;
+
+exports['default'] = function (content) {
   this.cacheable();
   return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions }), 'props') + ')\n    }\n  ';
 };
+
+;
 

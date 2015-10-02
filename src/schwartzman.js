@@ -25,6 +25,7 @@ function prerareStyle(styleString) {
 }
 
 function prepareAttr({name, value}) {
+  if (!name || !value) { return {} }
   var attrKey = name.text
   var attrValue = value.text
 
@@ -79,7 +80,17 @@ const actions = {
   removeQuotes: (input, start, end, [lq, text, rq]) => text,
 }
 
-module.exports = function(content) {
+export var lowLevel = {
+  compileAny,
+  compileDOM,
+  compileMustache,
+  prerareStyle,
+  prepareAttr,
+  PEGactions: actions,
+  PEGparse: parse,
+}
+
+export default function(content) {
   this.cacheable();
   return `
     'use strict'
