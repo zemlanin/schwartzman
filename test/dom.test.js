@@ -12,65 +12,70 @@ function parseAndCompile(tmpl, v) {
 }
 
 describe('schwartzman', function() {
-  describe('prepareAttr', function () {
+  describe('compileAttrs', function () {
     it('empty arg returns an object', function () {
-      assert.deepEqual(LL.prepareAttr({}), {})
+      assert.deepEqual(LL.compileAttrs('props', '', {}), '')
     })
 
     it('correctly prepare ordinary attrs', function () {
       assert.deepEqual(
-        LL.prepareAttr({
+        LL.compileAttrs('props', '', {
           name: {text: 'x'},
           value: {text: 'x'}
         }),
-        {x: 'x'}
+        '"x":"x"'
       )
     })
 
     it('correctly prepare `class` attr', function () {
       assert.deepEqual(
-        LL.prepareAttr({
+        LL.compileAttrs('props', '', {
           name: {text: 'class'},
           value: {text: 'x'}
         }),
-        {className: 'x'}
+        '"className":"x"'
       )
     })
 
     it('correctly prepare `style` attr', function () {
       assert.deepEqual(
-        LL.prepareAttr({
+        LL.compileAttrs('props', '', {
           name: {text: 'style'},
           value: {text: 'width: "200px"'}
         }),
-        {style: 'width: "200px"'}
+        '"style":"width: \\"200px\\""'
       )
     })
   })
 
   describe('compileDOM', function () {
     it('compiles single simple node', function () {
-      assert.deepEqual(
+      assert.equal(
         parseAndCompile("<div></div>"),
         'React.DOM.div({})'
       )
 
-      assert.deepEqual(
+      assert.equal(
+        parseAndCompile("<textarea/>"),
+        'React.DOM.textarea({})'
+      )
+
+      assert.equal(
         parseAndCompile("<img src='test.jpg'></img>"),
         'React.DOM.img({"src":"test.jpg"})'
       )
 
-      assert.deepEqual(
+      assert.equal(
         parseAndCompile("<span hidden=hidden></span>"),
         'React.DOM.span({"hidden":"hidden"})'
       )
 
-      assert.deepEqual(
+      assert.equal(
         parseAndCompile('<span class="hidden"></span>'),
         'React.DOM.span({"className":"hidden"})'
       )
 
-      assert.deepEqual(
+      assert.equal(
         parseAndCompile("<p>lol</p>", 'props').replace(/\s+/g, ''),
         'React.DOM.p({},"lol")'
       )
@@ -79,11 +84,25 @@ describe('schwartzman', function() {
 
   describe('compileMustache', function () {
     it('compiles variable node', function () {
-      assert.deepEqual(
+      assert.equal(
         parseAndCompile("<p>{{lol}}</p>", 'props').replace(/\s+/g, ''),
         'React.DOM.p({},props.lol)'
       )
     })
+
+    it('compiles variable node as attr value', function () {
+      assert.equal(
+        parseAndCompile("<p lol={{lol}}></p>", 'props').replace(/\s+/g, ''),
+        'React.DOM.p({"lol":props.lol})'
+      )
+    })
+
+    // it('compiles variable node inside attr value', function () {
+    //   assert.deepEqual(
+    //     parseAndCompile("<p lol="test {{lol}}""></p>", 'props').replace(/\s+/g, ''),
+    //     'React.DOM.p({"lol":"test "+props.lol})'
+    //   )
+    // })
   })
 
   describe('syntax errors', function () {

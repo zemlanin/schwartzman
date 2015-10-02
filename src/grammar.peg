@@ -1,11 +1,11 @@
 grammar Schwartzman
 
-dom_node            <- (open_html_tag expr_node* close_html_tag %validate) / contained_html_tag <DOMNode>
+dom_node            <- (open_html_tag expr_node* close_html_tag) %validate <DOMNode> / contained_html_tag <DOMNode>
 open_html_tag       <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? ">" whitespace?
 contained_html_tag  <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? "/>" whitespace?
 close_html_tag      <- "</" tag_name ">" whitespace?
 tag_name            <- [a-z]+
-dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name)
+dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name / mustache_node)
 
 expr_node     <- dom_node / mustache_node / text_node
 mustache_node <- (variable_node whitespace?) <MustacheNode> # TODO: NonEmptyListNode | NonFalseValueNode | InvertedSectionNode | CommentsNode | PartialNode | SetDelimiterNode | LambdaNode

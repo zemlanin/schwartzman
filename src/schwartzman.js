@@ -30,10 +30,10 @@ function prerareStyle(styleString) {
   return styleString // TODO
 }
 
-function prepareAttr({name, value}) {
-  if (!name || !value) { return {} }
+function compileAttrs(varVar, acc, {name, value}) {
+  if (!name || !value) { return acc }
   var attrKey = name.text
-  var attrValue = value.text
+  var attrValue
 
   switch (attrKey) {
     case 'class':
@@ -41,7 +41,16 @@ function prepareAttr({name, value}) {
     case 'style':
       attrValue = prerareStyle(attrValue)
   }
-  return {[attrKey]: attrValue}
+
+  if (value._type === 'MustacheNode') {
+    attrValue = compileMustache(value, varVar)
+  } else {
+    attrValue = JSON.stringify(value.text)
+  }
+
+  attrKey = JSON.stringify(attrKey)
+
+  return acc + (acc ? ',' : '') + attrKey + ':' + attrValue
 }
 
 function compileDOM(nodesTree, varVar) {
@@ -60,18 +69,18 @@ function compileDOM(nodesTree, varVar) {
   }
 
   tagName = tagName.text.trim()
-  attrs = attrs.map(prepareAttr).reduce(assign, {})
+  attrs = '{' + attrs.reduce(compileAttrs.bind(null, varVar), '') + '}'
 
   if (children && children.length) {
     return `
       React.DOM.${tagName}(
-        ${JSON.stringify(attrs)},
+        ${attrs},
         ${children.map(n => compileAny(n, varVar)).join(', ')}
       )
     `
   }
 
-  return `React.DOM.${tagName}(${JSON.stringify(attrs)})`
+  return `React.DOM.${tagName}(${attrs})`
 }
 
 const actions = {
@@ -96,18 +105,7 @@ const types = {
   },
 }
 
-export var lowLevel = {
-  compileAny,
-  compileDOM,
-  compileMustache,
-  prerareStyle,
-  prepareAttr,
-  PEGtypes: types,
-  PEGactions: actions,
-  PEGparse: parse,
-}
-
-export default function(content) {
+module.exports = function(content) {
   this.cacheable();
   return `
     'use strict'
@@ -118,4 +116,15 @@ export default function(content) {
       return (${compileDOM(parse(content, {actions, types}), 'props')})
     }
   `
-};
+}
+
+module.exports.lowLevel = {
+  compileAny,
+  compileDOM,
+  compileMustache,
+  prerareStyle,
+  compileAttrs,
+  PEGtypes: types,
+  PEGactions: actions,
+  PEGparse: parse,
+}
