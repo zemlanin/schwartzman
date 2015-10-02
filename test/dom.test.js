@@ -3,11 +3,12 @@
 var assert = require("assert")
 var LL = require("../dist/schwartzman").lowLevel
 
+function parse(tmpl) {
+  return LL.PEGparse(tmpl, {actions: LL.PEGactions, types: LL.PEGtypes})
+}
+
 function parseAndCompile(tmpl, v) {
-  return LL.compileDOM(
-    LL.PEGparse(tmpl, {actions: LL.PEGactions, types: LL.PEGtypes}),
-    v
-  )
+  return LL.compileDOM(parse(tmpl), v)
 }
 
 describe('schwartzman', function() {
@@ -82,6 +83,17 @@ describe('schwartzman', function() {
         parseAndCompile("<p>{{lol}}</p>", 'props').replace(/\s+/g, ''),
         'React.DOM.p({},props.lol)'
       )
+    })
+  })
+
+  describe('syntax errors', function () {
+    it('dom', function () {
+      assert.throws(parse.bind(null, "<p><b></p></b>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p><img></p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p><</p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p>></p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p %></p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p>"), /SyntaxError/)
     })
   })
 })

@@ -1,6 +1,6 @@
 grammar Schwartzman
 
-dom_node            <- (open_html_tag nodes:expr_node* close_html_tag) / contained_html_tag <DOMNode>
+dom_node            <- (open_html_tag expr_node* close_html_tag %validate) / contained_html_tag <DOMNode>
 open_html_tag       <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? ">" whitespace?
 contained_html_tag  <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? "/>" whitespace?
 close_html_tag      <- "</" tag_name ">" whitespace?

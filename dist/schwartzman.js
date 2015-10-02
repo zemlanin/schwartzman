@@ -70,17 +70,9 @@ function compileDOM(nodesTree, varVar) {
   var attrs;
   var children;
 
-  if (nodesTree.nodes // node with closing tag
-   && nodesTree.open_html_tag.tag_name.text != nodesTree.close_html_tag.tag_name.text) {
-    var _open = nodesTree.open_html_tag;
-    var _close = nodesTree.close_html_tag;
-
-    throw new Error('miss closed tag: ' + _open.text.trim() + ' and ' + _close.text.trim());
-  }
-
-  if (nodesTree.open_html_tag) {
-    tagName = nodesTree.open_html_tag.tag_name;
-    attrs = nodesTree.open_html_tag.attrs.elements;
+  if (nodesTree.open) {
+    tagName = nodesTree.open.tag_name;
+    attrs = nodesTree.open.attrs.elements;
     children = nodesTree.nodes.elements;
   } else {
     tagName = nodesTree.tag_name;
@@ -107,6 +99,18 @@ var actions = {
     var text = _ref32[1];
     var rq = _ref32[2];
     return text;
+  },
+  validate: function validate(input, start, end, _ref4) {
+    var _ref42 = _slicedToArray(_ref4, 3);
+
+    var open = _ref42[0];
+    var nodes = _ref42[1];
+    var close = _ref42[2];
+
+    if (open.tag_name.text != close.tag_name.text) {
+      throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
+    }
+    return { open: open, nodes: nodes, close: close };
   }
 };
 

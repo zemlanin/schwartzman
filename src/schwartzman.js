@@ -50,17 +50,9 @@ function compileDOM(nodesTree, varVar) {
   var attrs
   var children
 
-  if (
-    nodesTree.nodes  // node with closing tag
-    && nodesTree.open_html_tag.tag_name.text != nodesTree.close_html_tag.tag_name.text
-  ) {
-    let {open_html_tag: open, close_html_tag: close} = nodesTree
-    throw new Error(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
-  }
-
-  if (nodesTree.open_html_tag) {
-    tagName = nodesTree.open_html_tag.tag_name
-    attrs = nodesTree.open_html_tag.attrs.elements
+  if (nodesTree.open) {
+    tagName = nodesTree.open.tag_name
+    attrs = nodesTree.open.attrs.elements
     children = nodesTree.nodes.elements
   } else {
     tagName = nodesTree.tag_name
@@ -84,6 +76,12 @@ function compileDOM(nodesTree, varVar) {
 
 const actions = {
   removeQuotes: (input, start, end, [lq, text, rq]) => text,
+  validate: (input, start, end, [open, nodes, close]) => {
+    if (open.tag_name.text != close.tag_name.text) {
+      throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
+    }
+    return { open, nodes, close }
+  },
 }
 
 const types = {
