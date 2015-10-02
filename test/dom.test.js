@@ -3,6 +3,13 @@
 var assert = require("assert")
 var LL = require("../dist/schwartzman").lowLevel
 
+function parseAndCompile(tmpl, v) {
+  return LL.compileDOM(
+    LL.PEGparse(tmpl, {actions: LL.PEGactions, types: LL.PEGtypes}),
+    v
+  )
+}
+
 describe('schwartzman', function() {
   describe('prepareAttr', function () {
     it('empty arg returns an object', function () {
@@ -41,45 +48,40 @@ describe('schwartzman', function() {
   })
 
   describe('compileDOM', function () {
-    it('compiles single node', function () {
+    it('compiles single simple node', function () {
       assert.deepEqual(
-        LL.compileDOM(LL.PEGparse(
-          "<div></div>"
-        )),
-        "React.DOM.div({})"
+        parseAndCompile("<div></div>"),
+        'React.DOM.div({})'
       )
 
       assert.deepEqual(
-        LL.compileDOM(LL.PEGparse(
-          "<img src='test.jpg'></img>",
-          {actions: LL.PEGactions}
-        )),
+        parseAndCompile("<img src='test.jpg'></img>"),
         'React.DOM.img({"src":"test.jpg"})'
       )
 
       assert.deepEqual(
-        LL.compileDOM(LL.PEGparse(
-          "<span hidden=hidden></span>",
-          {actions: LL.PEGactions}
-        )),
+        parseAndCompile("<span hidden=hidden></span>"),
         'React.DOM.span({"hidden":"hidden"})'
       )
 
       assert.deepEqual(
-        LL.compileDOM(LL.PEGparse(
-          '<span class="hidden"></span>',
-          {actions: LL.PEGactions}
-        )),
+        parseAndCompile('<span class="hidden"></span>'),
         'React.DOM.span({"className":"hidden"})'
       )
 
-      // assert.deepEqual(
-      //   LL.compileDOM(LL.PEGparse(
-      //     "<p>lol</p>",
-      //     {actions: LL.PEGactions}
-      //   )),
-      //   'React.DOM.p({},"lol")'
-      // )
+      assert.deepEqual(
+        parseAndCompile("<p>lol</p>", 'props').replace(/\s+/g, ''),
+        'React.DOM.p({},"lol")'
+      )
+    })
+  })
+
+  describe('compileMustache', function () {
+    it('compiles variable node', function () {
+      assert.deepEqual(
+        parseAndCompile("<p>{{lol}}</p>", 'props').replace(/\s+/g, ''),
+        'React.DOM.p({},props.lol)'
+      )
     })
   })
 })

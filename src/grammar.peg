@@ -1,18 +1,20 @@
 grammar Schwartzman
 
-dom_node            <- (open_html_tag nodes:expr_node* close_html_tag) / contained_html_tag
+dom_node            <- (open_html_tag nodes:expr_node* close_html_tag) / contained_html_tag <DOMNode>
 open_html_tag       <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? ">" whitespace?
 contained_html_tag  <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? "/>" whitespace?
 close_html_tag      <- "</" tag_name ">" whitespace?
 tag_name            <- [a-z]+
 dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name)
 
-expr_node     <- dom_node / mustache_node
-mustache_node <- (variable_node whitespace?) # TODO: NonEmptyListNode | NonFalseValueNode | InvertedSectionNode | CommentsNode | PartialNode | SetDelimiterNode | LambdaNode
+expr_node     <- dom_node / mustache_node / text_node
+mustache_node <- (variable_node whitespace?) <MustacheNode> # TODO: NonEmptyListNode | NonFalseValueNode | InvertedSectionNode | CommentsNode | PartialNode | SetDelimiterNode | LambdaNode
 
 variable_node         <- regular_variable_node / escaped_variable_node
 regular_variable_node <- "{{" whitespace var_name whitespace "}}"
 escaped_variable_node <- "{{&" whitespace var_name whitespace "}}" / "{{{" whitespace var_name whitespace "}}}"
+
+text_node <- [^<>]+ <TextNode>
 
 var_name          <- letter dot_alphanum*
 dashed_var_name   <- letter dash_alphanum*

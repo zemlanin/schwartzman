@@ -17,10 +17,16 @@ var _lodashAssign2 = _interopRequireDefault(_lodashAssign);
 var _grammar = require('./grammar');
 
 function compileAny(nodesTree, varVar) {
-  if (nodesTree.html_tag || nodesTree.open_html_tag) {
-    return compileDOM(nodesTree, varVar);
-  } else {
-    return compileMustache(nodesTree, varVar);
+  switch (nodesTree._type) {
+    case 'DOMNode':
+      return compileDOM(nodesTree, varVar);
+      break;
+    case 'MustacheNode':
+      return compileMustache(nodesTree, varVar);
+      break;
+    case 'TextNode':
+      return JSON.stringify(nodesTree.text);
+      break;
   }
 }
 
@@ -104,12 +110,25 @@ var actions = {
   }
 };
 
+var types = {
+  DOMNode: {
+    _type: 'DOMNode'
+  },
+  MustacheNode: {
+    _type: 'MustacheNode'
+  },
+  TextNode: {
+    _type: 'TextNode'
+  }
+};
+
 var lowLevel = {
   compileAny: compileAny,
   compileDOM: compileDOM,
   compileMustache: compileMustache,
   prerareStyle: prerareStyle,
   prepareAttr: prepareAttr,
+  PEGtypes: types,
   PEGactions: actions,
   PEGparse: _grammar.parse
 };
@@ -118,7 +137,7 @@ exports.lowLevel = lowLevel;
 
 exports['default'] = function (content) {
   this.cacheable();
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions }), 'props') + ')\n    }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), 'props') + ')\n    }\n  ';
 };
 
 ;

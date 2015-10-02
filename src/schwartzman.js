@@ -2,10 +2,16 @@ import assign from 'lodash.assign'
 import {parse} from './grammar'
 
 function compileAny(nodesTree, varVar) {
-  if (nodesTree.html_tag || nodesTree.open_html_tag) {
-    return compileDOM(nodesTree, varVar)
-  } else {
-    return compileMustache(nodesTree, varVar)
+  switch (nodesTree._type) {
+    case 'DOMNode':
+      return compileDOM(nodesTree, varVar)
+      break;
+    case 'MustacheNode':
+      return compileMustache(nodesTree, varVar)
+      break;
+    case 'TextNode':
+      return JSON.stringify(nodesTree.text)
+      break;
   }
 }
 
@@ -80,12 +86,25 @@ const actions = {
   removeQuotes: (input, start, end, [lq, text, rq]) => text,
 }
 
+const types = {
+  DOMNode: {
+    _type: 'DOMNode',
+  },
+  MustacheNode: {
+    _type: 'MustacheNode',
+  },
+  TextNode: {
+    _type: 'TextNode',
+  },
+}
+
 export var lowLevel = {
   compileAny,
   compileDOM,
   compileMustache,
   prerareStyle,
   prepareAttr,
+  PEGtypes: types,
   PEGactions: actions,
   PEGparse: parse,
 }
@@ -98,7 +117,7 @@ export default function(content) {
     var React = require('react')
 
     module.exports = function (props) {
-      return (${compileDOM(parse(content, {actions}), 'props')})
+      return (${compileDOM(parse(content, {actions, types}), 'props')})
     }
   `
 };
