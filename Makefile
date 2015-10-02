@@ -3,15 +3,14 @@ babel = $(bin)/babel
 webpack = $(bin)/webpack
 canopy = $(bin)/canopy
 
-bin/schwartzman.js: src/schwartzman.js bin/grammar.js
-	mkdir -p $(dir $@)
+dist/schwartzman.js: src/schwartzman.js dist/grammar.js
 	$(babel) src/schwartzman.js > $@
 
-bin/grammar.js: src/grammar.peg
+dist/grammar.js: src/grammar.peg
 	$(canopy) src/grammar.peg --lang js
-	mv src/grammar.js bin
+	mv src/grammar.js dist
 
 .PHONE: examples
-examples: examples/src/*/* bin/schwartzman.js
+examples: examples/src/*/* dist/schwartzman.js
 	$(webpack)
 	node examples/out/try.js

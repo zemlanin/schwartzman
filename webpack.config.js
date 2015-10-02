@@ -19,7 +19,7 @@ module.exports = {
   resolveLoader: {
     root: path.join(PROJECT_DEPS, 'node_modules'),
     modulesDirectories: [
-      path.resolve(__dirname, "bin"),
+      path.resolve(__dirname, "dist"),
     ],
   },
   resolve: {
