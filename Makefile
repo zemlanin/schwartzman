@@ -4,6 +4,7 @@ webpack = $(bin)/webpack
 canopy = $(bin)/canopy
 
 bin/schwartzman.js: src/schwartzman.js bin/grammar.js
+	mkdir -p $(dir $@)
 	$(babel) src/schwartzman.js > $@
 
 bin/grammar.js: src/grammar.peg
