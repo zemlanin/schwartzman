@@ -70,7 +70,7 @@ function compileAttrs(varVar, acc, _ref) {
 function compileDOM(nodesTree, varVar) {
   var currentNodeHTML = nodesTree;
   var tagName;
-  var attrs;
+  var attrs, attrsContent;
   var children;
 
   if (nodesTree.open) {
@@ -83,7 +83,8 @@ function compileDOM(nodesTree, varVar) {
   }
 
   tagName = tagName.text.trim();
-  attrs = '{' + attrs.reduce(compileAttrs.bind(null, varVar), '') + '}';
+  attrsContent = attrs.reduce(compileAttrs.bind(null, varVar), '');
+  attrs = attrsContent ? '{' + attrsContent + '}' : null;
 
   if (children && children.length) {
     return '\n      React.DOM.' + tagName + '(\n        ' + attrs + ',\n        ' + children.map(function (n) {

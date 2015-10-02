@@ -52,12 +52,12 @@ describe('schwartzman', function() {
     it('compiles single simple node', function () {
       assert.equal(
         parseAndCompile("<div></div>"),
-        'React.DOM.div({})'
+        'React.DOM.div(null)'
       )
 
       assert.equal(
         parseAndCompile("<textarea/>"),
-        'React.DOM.textarea({})'
+        'React.DOM.textarea(null)'
       )
 
       assert.equal(
@@ -77,7 +77,7 @@ describe('schwartzman', function() {
 
       assert.equal(
         parseAndCompile("<p>lol</p>", 'props').replace(/\s+/g, ''),
-        'React.DOM.p({},"lol")'
+        'React.DOM.p(null,"lol")'
       )
     })
   })
@@ -86,7 +86,7 @@ describe('schwartzman', function() {
     it('compiles variable node', function () {
       assert.equal(
         parseAndCompile("<p>{{lol}}</p>", 'props').replace(/\s+/g, ''),
-        'React.DOM.p({},props.lol)'
+        'React.DOM.p(null,props.lol)'
       )
     })
 
