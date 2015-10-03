@@ -16,13 +16,13 @@ escaped_variable_node <- "{{&" whitespace var_name whitespace "}}" / "{{{" white
 
 text_node <- [^<>]+ <TextNode>
 
-var_name          <- letter dot_alphanum*
-dashed_var_name   <- letter dash_alphanum*
+var_name          <- (&letter dot_alphanum*)
+dashed_var_name   <- (&letter dash_alphanum*)
 letter            <- [a-z]
 dot_alphanum      <- "."? [a-z0-9]+
 dash_alphanum     <- "-"? [a-z0-9]+
 
-sq_string_literal <- "'" [^'\\]* "'"    %removeQuotes # TODO: escaping
-dq_string_literal <- "\"" [^"\\]* "\""  %removeQuotes # TODO: escaping
+sq_string_literal <-  "'" ([^'\\{]+ / mustache_node)*  "'"  %removeQuotes # TODO: escaping
+dq_string_literal <- "\"" ([^"\\{]+ / mustache_node)* "\""  %removeQuotes # TODO: escaping
 
 whitespace        <- [ \s]*

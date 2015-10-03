@@ -35,17 +35,28 @@ function compileAttrs(varVar, acc, {name, value}) {
   var attrKey = name.text
   var attrValue
 
+  if (value._type === 'MustacheNode') {
+    attrValue = compileMustache(value, varVar)
+  } else if (!value.elements) {
+    attrValue = JSON.stringify(value.text)
+  } else {
+    attrValue = value.elements
+      .filter(v => v.text)
+      .map(v => {
+        if (v._type === 'MustacheNode') {
+          return compileMustache(v, varVar)
+        } else {
+          return JSON.stringify(v.text)
+        }
+      })
+      .join('+')
+  }
+
   switch (attrKey) {
     case 'class':
       attrKey = 'className'
     case 'style':
       attrValue = prerareStyle(attrValue)
-  }
-
-  if (value._type === 'MustacheNode') {
-    attrValue = compileMustache(value, varVar)
-  } else {
-    attrValue = JSON.stringify(value.text)
   }
 
   attrKey = JSON.stringify(attrKey)

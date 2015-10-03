@@ -97,12 +97,12 @@ describe('schwartzman', function() {
       )
     })
 
-    // it('compiles variable node inside attr value', function () {
-    //   assert.deepEqual(
-    //     parseAndCompile("<p lol="test {{lol}}""></p>", 'props').replace(/\s+/g, ''),
-    //     'React.DOM.p({"lol":"test "+props.lol})'
-    //   )
-    // })
+    it('compiles variable node inside attr value', function () {
+      assert.equal(
+        parseAndCompile('<p lol="test {{lol}}"></p>', 'props').replace(/\s+/g, ''),
+        'React.DOM.p({"lol":"test"+props.lol})' // loses space because of replace inside a test
+      )
+    })
   })
 
   describe('syntax errors', function () {
