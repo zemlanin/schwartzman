@@ -21,6 +21,9 @@ function compileAny(nodesTree, varVar) {
     case 'TextNode':
       return JSON.stringify(nodesTree.text);
       break;
+    case 'CommentedDOMNode':
+      return '// ' + nodesTree.elements[1].text.replace('\n', ' ') + '\n';
+      break;
   }
 }
 
@@ -97,12 +100,15 @@ function compileDOM(nodesTree, varVar) {
   attrs = attrsContent ? '{' + attrsContent + '}' : null;
 
   if (children && children.length) {
-    return '\n      React.DOM.' + tagName + '(\n        ' + attrs + ',\n        ' + children.map(function (n) {
+    return 'React.DOM.' + tagName + '(\n        ' + attrs + '\n        ' + children.map(function (n) {
       return compileAny(n, varVar);
-    }).join(', ') + '\n      )\n    ';
+    }).reduce( // remove commas before comments
+    function (acc, v) {
+      return acc.replace(/,$/, '') + (v.indexOf('//') === 0 ? '' : ',') + v;
+    }, ',') + '\n      )\n';
   }
 
-  return 'React.DOM.' + tagName + '(' + attrs + ')';
+  return 'React.DOM.' + tagName + '(' + attrs + ')\n';
 }
 
 var actions = {
@@ -137,6 +143,9 @@ var types = {
   },
   TextNode: {
     _type: 'TextNode'
+  },
+  CommentedDOMNode: {
+    _type: 'CommentedDOMNode'
   }
 };
 

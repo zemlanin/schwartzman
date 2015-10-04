@@ -8,7 +8,7 @@ function parse(tmpl) {
 }
 
 function parseAndCompile(tmpl, v) {
-  return LL.compileDOM(parse(tmpl), v)
+  return LL.compileDOM(parse(tmpl), v).replace(/\s*$/, '')
 }
 
 describe('schwartzman', function() {
