@@ -80,6 +80,28 @@ describe('schwartzman', function() {
         'React.DOM.p(null,"lol")'
       )
     })
+
+    it('compiles nested nodes', function () {
+      assert.equal(
+        parseAndCompile("<div><img/></div>").replace(/\s+/g, ''),
+        'React.DOM.div(null,React.DOM.img(null))'
+      )
+
+      assert.equal(
+        parseAndCompile("<div><img/><img/></div>").replace(/\s+/g, ''),
+        'React.DOM.div(null,React.DOM.img(null),React.DOM.img(null))'
+      )
+
+      assert.equal(
+        parseAndCompile("<p>lol<img/></p>").replace(/\s+/g, ''),
+        'React.DOM.p(null,"lol",React.DOM.img(null))'
+      )
+
+      assert.equal(
+        parseAndCompile("<div><p><img/></p></div>").replace(/\s+/g, ''),
+        'React.DOM.div(null,React.DOM.p(null,React.DOM.img(null)))'
+      )
+    })
   })
 
   describe('compileMustache', function () {
