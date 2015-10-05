@@ -10,29 +10,31 @@ function compileAny(nodesTree, varVar) {
       return compileMustache(nodesTree, varVar)
       break;
     case 'TextNode':
-      return JSON.stringify(nodesTree.text)
+      return {code: JSON.stringify(nodesTree.text)}
       break;
     case 'CommentedDOMNode':
-      return '// ' + nodesTree.elements[1].text.replace('\n', ' ') + '\n'
+      return {code: '// ' + nodesTree.elements[1].text.replace('\n', ' ') + '\n'}
       break;
   }
 }
 
 function compileMustache(nodesTree, varVar) {
-  var result
+  var code
   var varName
+  var compiledChild
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text
-    result = varVar + '.' + varName
+    code = varVar + '.' + varName
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name
     // TODO: keys for children
-    result = `${varVar}.${varName} && ${varVar}.${varName}.length ? ${varVar}.${varName}.map(function(${varName}){ return ${compileAny(nodesTree.section_node.expr_node, varName)} }) : null`
+    compiledChild = compileAny(nodesTree.section_node.expr_node, varName)
+    code = `${varVar}.${varName} && ${varVar}.${varName}.length ? ${varVar}.${varName}.map(function(${varName}){ return ${compiledChild.code} }) : null`
   } else {
-    result = 'null'
+    code = 'null'
   }
-  return result
+  return {code}
 }
 
 function prerareStyle(styleString) {
@@ -45,7 +47,7 @@ function compileAttrs(varVar, acc, {name, value}) {
   var attrValue
 
   if (value._type === 'MustacheNode') {
-    attrValue = compileMustache(value, varVar)
+    attrValue = compileMustache(value, varVar).code
   } else if (!value.elements) {
     attrValue = JSON.stringify(value.text)
   } else {
@@ -53,7 +55,7 @@ function compileAttrs(varVar, acc, {name, value}) {
       .filter(v => v.text)
       .map(v => {
         if (v._type === 'MustacheNode') {
-          return compileMustache(v, varVar)
+          return compileMustache(v, varVar).code
         } else {
           return JSON.stringify(v.text)
         }
@@ -78,6 +80,7 @@ function compileDOM(nodesTree, varVar) {
   var tagName
   var attrs, attrsContent
   var children
+  var compiledChildren
 
   if (nodesTree.open) {
     tagName = nodesTree.open.tag_name
@@ -93,21 +96,19 @@ function compileDOM(nodesTree, varVar) {
   attrs = attrsContent ? '{' + attrsContent + '}' : null
 
   if (children && children.length) {
-    return `React.DOM.${tagName}(
+    compiledChildren = children.map(n => compileAny(n, varVar))
+    return {code: `React.DOM.${tagName}(
         ${attrs}
-        ${children
-          .map(n => compileAny(n, varVar))
+        ${compiledChildren
           .reduce( // remove commas before comments
-            (acc, v) => acc.replace(/,$/, '') + (v.indexOf('//') === 0 ? '': ',') + v,
+            (acc, v) => acc.replace(/,$/, '') + (v.code.indexOf('//') === 0 ? '': ',') + v.code,
             ','
           )
         }
-      )
-`
+      )\n`}
   }
 
-  return `React.DOM.${tagName}(${attrs})
-`
+  return {code: `React.DOM.${tagName}(${attrs})\n`}
 }
 
 const actions = {
@@ -149,7 +150,7 @@ module.exports = function(content) {
     var React = require('react')
 
     module.exports = function (props) {
-      return (${compileDOM(parse(content, {actions, types}), 'props')})
+      return (${compileDOM(parse(content, {actions, types}), 'props').code})
     }
   `
 }

@@ -19,29 +19,31 @@ function compileAny(nodesTree, varVar) {
       return compileMustache(nodesTree, varVar);
       break;
     case 'TextNode':
-      return JSON.stringify(nodesTree.text);
+      return { code: JSON.stringify(nodesTree.text) };
       break;
     case 'CommentedDOMNode':
-      return '// ' + nodesTree.elements[1].text.replace('\n', ' ') + '\n';
+      return { code: '// ' + nodesTree.elements[1].text.replace('\n', ' ') + '\n' };
       break;
   }
 }
 
 function compileMustache(nodesTree, varVar) {
-  var result;
+  var code;
   var varName;
+  var compiledChild;
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text;
-    result = varVar + '.' + varName;
+    code = varVar + '.' + varName;
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name;
     // TODO: keys for children
-    result = varVar + '.' + varName + ' && ' + varVar + '.' + varName + '.length ? ' + varVar + '.' + varName + '.map(function(' + varName + '){ return ' + compileAny(nodesTree.section_node.expr_node, varName) + ' }) : null';
+    compiledChild = compileAny(nodesTree.section_node.expr_node, varName);
+    code = varVar + '.' + varName + ' && ' + varVar + '.' + varName + '.length ? ' + varVar + '.' + varName + '.map(function(' + varName + '){ return ' + compiledChild.code + ' }) : null';
   } else {
-    result = 'null';
+    code = 'null';
   }
-  return result;
+  return { code: code };
 }
 
 function prerareStyle(styleString) {
@@ -59,7 +61,7 @@ function compileAttrs(varVar, acc, _ref) {
   var attrValue;
 
   if (value._type === 'MustacheNode') {
-    attrValue = compileMustache(value, varVar);
+    attrValue = compileMustache(value, varVar).code;
   } else if (!value.elements) {
     attrValue = JSON.stringify(value.text);
   } else {
@@ -67,7 +69,7 @@ function compileAttrs(varVar, acc, _ref) {
       return v.text;
     }).map(function (v) {
       if (v._type === 'MustacheNode') {
-        return compileMustache(v, varVar);
+        return compileMustache(v, varVar).code;
       } else {
         return JSON.stringify(v.text);
       }
@@ -91,6 +93,7 @@ function compileDOM(nodesTree, varVar) {
   var tagName;
   var attrs, attrsContent;
   var children;
+  var compiledChildren;
 
   if (nodesTree.open) {
     tagName = nodesTree.open.tag_name;
@@ -106,15 +109,16 @@ function compileDOM(nodesTree, varVar) {
   attrs = attrsContent ? '{' + attrsContent + '}' : null;
 
   if (children && children.length) {
-    return 'React.DOM.' + tagName + '(\n        ' + attrs + '\n        ' + children.map(function (n) {
+    compiledChildren = children.map(function (n) {
       return compileAny(n, varVar);
-    }).reduce( // remove commas before comments
-    function (acc, v) {
-      return acc.replace(/,$/, '') + (v.indexOf('//') === 0 ? '' : ',') + v;
-    }, ',') + '\n      )\n';
+    });
+    return { code: 'React.DOM.' + tagName + '(\n        ' + attrs + '\n        ' + compiledChildren.reduce( // remove commas before comments
+      function (acc, v) {
+        return acc.replace(/,$/, '') + (v.code.indexOf('//') === 0 ? '' : ',') + v.code;
+      }, ',') + '\n      )\n' };
   }
 
-  return 'React.DOM.' + tagName + '(' + attrs + ')\n';
+  return { code: 'React.DOM.' + tagName + '(' + attrs + ')\n' };
 }
 
 var actions = {
@@ -169,7 +173,7 @@ var types = {
 
 module.exports = function (content) {
   this.cacheable();
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), 'props') + ')\n    }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), 'props').code + ')\n    }\n  ';
 };
 
 module.exports.lowLevel = {
