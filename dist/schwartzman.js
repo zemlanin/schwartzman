@@ -29,9 +29,15 @@ function compileAny(nodesTree, varVar) {
 
 function compileMustache(nodesTree, varVar) {
   var result;
+  var varName;
 
   if (nodesTree.variable_node) {
-    result = varVar + '.' + nodesTree.variable_node.var_name.text;
+    varName = nodesTree.variable_node.var_name.text;
+    result = varVar + '.' + varName;
+  } else if (nodesTree.section_node) {
+    varName = nodesTree.section_node.var_name;
+    // TODO: keys for children
+    result = varVar + '.' + varName + ' && ' + varVar + '.' + varName + '.length ? ' + varVar + '.' + varName + '.map(function(' + varName + '){ return ' + compileAny(nodesTree.section_node.expr_node, varName) + ' }) : null';
   } else {
     result = 'null';
   }
@@ -131,6 +137,18 @@ var actions = {
       throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
     }
     return { open: open, nodes: nodes, close: close };
+  },
+  validate_mustache: function validate_mustache(input, start, end, _ref4) {
+    var _ref42 = _slicedToArray(_ref4, 3);
+
+    var open = _ref42[0];
+    var expr_node = _ref42[1];
+    var close = _ref42[2];
+
+    if (open.var_name.text != close.var_name.text) {
+      throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
+    }
+    return { var_name: open.var_name.text, expr_node: expr_node };
   }
 };
 

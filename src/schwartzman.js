@@ -20,9 +20,15 @@ function compileAny(nodesTree, varVar) {
 
 function compileMustache(nodesTree, varVar) {
   var result
+  var varName
 
   if (nodesTree.variable_node) {
-    result = varVar + '.' + nodesTree.variable_node.var_name.text
+    varName = nodesTree.variable_node.var_name.text
+    result = varVar + '.' + varName
+  } else if (nodesTree.section_node) {
+    varName = nodesTree.section_node.var_name
+    // TODO: keys for children
+    result = `${varVar}.${varName} && ${varVar}.${varName}.length ? ${varVar}.${varName}.map(function(${varName}){ return ${compileAny(nodesTree.section_node.expr_node, varName)} }) : null`
   } else {
     result = 'null'
   }
@@ -111,6 +117,12 @@ const actions = {
       throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
     }
     return { open, nodes, close }
+  },
+  validate_mustache: (input, start, end, [open, expr_node, close]) => {
+    if (open.var_name.text != close.var_name.text) {
+      throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
+    }
+    return { var_name: open.var_name.text, expr_node }
   },
 }
 

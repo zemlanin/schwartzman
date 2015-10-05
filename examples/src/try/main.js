@@ -9,6 +9,10 @@ var Component = React.createClass({
 
 var element = React.createElement(Component, {
   name: 'Jason',
+  people: [
+    {name: 'Alice'},
+    {name: 'Bob'},
+  ],
 })
 
 console.log(React.renderToStaticMarkup(element))

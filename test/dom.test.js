@@ -125,6 +125,20 @@ describe('schwartzman', function() {
         'React.DOM.p({"lol":"test"+props.lol})' // loses space because of replace inside a test
       )
     })
+
+    it('compiles section node with text inside', function () {
+      assert.equal(
+        parseAndCompile('<p>{{#people}}x{{/people}}</p>', 'props').replace(/\s+/g, ''),
+        'React.DOM.p(null,props.people&&props.people.length?props.people.map(function(people){return"x"}):null)'
+      )
+    })
+
+    it('compiles section node with dom inside', function () {
+      assert.equal(
+        parseAndCompile('<ul>{{#people}}<li>{{name}}</li>{{/people}}</ul>', 'props').replace(/\s+/g, ''),
+        'React.DOM.ul(null,props.people&&props.people.length?props.people.map(function(people){returnReact.DOM.li(null,people.name)}):null)'
+      )
+    })
   })
 
   describe('syntax errors', function () {
