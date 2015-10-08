@@ -10,13 +10,13 @@ var _lodashAssign2 = _interopRequireDefault(_lodashAssign);
 
 var _grammar = require('./grammar');
 
-function compileAny(nodesTree, varVar) {
+function compileAny(nodesTree, context) {
   switch (nodesTree._type) {
     case 'DOMNode':
-      return compileDOM(nodesTree, varVar);
+      return compileDOM(nodesTree, context);
       break;
     case 'MustacheNode':
-      return compileMustache(nodesTree, varVar);
+      return compileMustache(nodesTree, context);
       break;
     case 'TextNode':
       return { code: JSON.stringify(nodesTree.text) };
@@ -27,19 +27,31 @@ function compileAny(nodesTree, varVar) {
   }
 }
 
-function compileMustache(nodesTree, varVar) {
+function compileMustache(nodesTree) {
+  var context = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
   var code;
   var varName;
-  var compiledChild;
+  var children;
+  var compiledChildren;
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text;
-    code = varVar + '.' + varName;
+    code = context.varName + '.' + varName;
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name;
+    children = nodesTree.section_node.expr_node.elements;
     // TODO: keys for children
-    compiledChild = compileAny(nodesTree.section_node.expr_node, varName);
-    code = varVar + '.' + varName + ' && ' + varVar + '.' + varName + '.length ? ' + varVar + '.' + varName + '.map(function(' + varName + '){ return ' + compiledChild.code + ' }) : null';
+    if (children && children.length) {
+      compiledChildren = children.map(function (n, index) {
+        return compileAny(n, { varName: varName }).code;
+      });
+      if (children.length === 1) {
+        code = 'section(' + context.varName + ', "' + varName + '", function(' + varName + '){ return (' + compiledChildren + ') })';
+      } else {
+        code = 'section(' + context.varName + ', "' + varName + '", function(' + varName + '){ return [' + compiledChildren + '] })';
+      }
+    }
   } else {
     code = 'null';
   }
@@ -50,7 +62,7 @@ function prerareStyle(styleString) {
   return styleString; // TODO
 }
 
-function compileAttrs(varVar, acc, _ref) {
+function compileAttrs(context, acc, _ref) {
   var name = _ref.name;
   var value = _ref.value;
 
@@ -61,7 +73,7 @@ function compileAttrs(varVar, acc, _ref) {
   var attrValue;
 
   if (value._type === 'MustacheNode') {
-    attrValue = compileMustache(value, varVar).code;
+    attrValue = compileMustache(value, context).code;
   } else if (!value.elements) {
     attrValue = JSON.stringify(value.text);
   } else {
@@ -69,7 +81,7 @@ function compileAttrs(varVar, acc, _ref) {
       return v.text;
     }).map(function (v) {
       if (v._type === 'MustacheNode') {
-        return compileMustache(v, varVar).code;
+        return compileMustache(v, context).code;
       } else {
         return JSON.stringify(v.text);
       }
@@ -88,7 +100,9 @@ function compileAttrs(varVar, acc, _ref) {
   return acc + (acc ? ',' : '') + attrKey + ':' + attrValue;
 }
 
-function compileDOM(nodesTree, varVar) {
+function compileDOM(nodesTree) {
+  var context = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
   var currentNodeHTML = nodesTree;
   var tagName;
   var attrs, attrsContent;
@@ -105,12 +119,12 @@ function compileDOM(nodesTree, varVar) {
   }
 
   tagName = tagName.text.trim();
-  attrsContent = attrs.reduce(compileAttrs.bind(null, varVar), '');
+  attrsContent = attrs.reduce(compileAttrs.bind(null, context), '');
   attrs = attrsContent ? '{' + attrsContent + '}' : null;
 
   if (children && children.length) {
     compiledChildren = children.map(function (n) {
-      return compileAny(n, varVar);
+      return compileAny(n, context);
     });
     return { code: 'React.DOM.' + tagName + '(\n        ' + attrs + '\n        ' + compiledChildren.reduce( // remove commas before comments
       function (acc, v) {
@@ -173,7 +187,7 @@ var types = {
 
 module.exports = function (content) {
   this.cacheable();
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), 'props').code + ')\n    }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n    function includeKey(v, index) {\n      if (v.key === undefined) { v.key = index }\n      return v\n    }\n\n    function section(props, varName, fn) {\n      var obj = props[varName]\n      if (obj) {\n        if (obj.length !== void 0 && obj.map) {\n          return obj.length ? obj.map(includeKey).map(fn) : null\n        } else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n          return obj(props, fn)\n        } else {\n          return fn(obj)\n        }\n      } else {\n        return null\n      }\n    }\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), { varName: 'props' }).code + ')\n    }\n  ';
 };
 
 module.exports.lowLevel = {

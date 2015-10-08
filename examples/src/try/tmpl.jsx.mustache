@@ -1,5 +1,12 @@
 <div>
-  <b class=x>{{name}}</b>
+  {{#name}}
+    <b class=x>
+      {{name}}
+    </b>
+  {{/name}}
+  {{#wrapper}}
+    -- {{name}} --
+  {{/wrapper}}
   <!--<i style="width: 200px"></i>-->
   <i data-x="x"></i>
   <i data-x={{name}}></i>

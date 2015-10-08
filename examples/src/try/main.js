@@ -13,6 +13,8 @@ var element = React.createElement(Component, {
     {name: 'Alice'},
     {name: 'Bob'},
   ],
+  'wrapper': function(props, fn){ console.log(fn(props)); return fn(props) },
 })
 
-console.log(React.renderToStaticMarkup(element))
+console.log(React.renderToStaticMarkup(element), '\n\n')
+console.log(React.renderToString(element))

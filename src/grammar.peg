@@ -13,9 +13,9 @@ expr_node     <- dom_node / mustache_node / text_node
 mustache_node <- (variable_node whitespace?) <MustacheNode> / (section_node whitespace?) <MustacheNode> # TODO: NonFalseValueNode | InvertedSectionNode | CommentsNode | PartialNode | SetDelimiterNode | LambdaNode
 
 variable_node           <- regular_variable_node / escaped_variable_node
-regular_variable_node   <- "{{" whitespace? var_name whitespace? "}}"
-escaped_variable_node   <- "{{&" whitespace? var_name whitespace? "}}" / "{{{" whitespace? var_name whitespace? "}}}"
-section_node            <- open_section_node expr_node close_section_node %validate_mustache
+regular_variable_node   <- "{{" whitespace? var_name whitespace? "}}" whitespace?
+escaped_variable_node   <- "{{&" whitespace? var_name whitespace? "}}" / "{{{" whitespace? var_name whitespace? "}}}" whitespace?
+section_node            <- open_section_node expr_node* close_section_node %validate_mustache
 open_section_node       <- "{{#" whitespace? var_name whitespace? "}}" whitespace?
 close_section_node      <- "{{/" whitespace? var_name whitespace? "}}" whitespace?
 
@@ -23,9 +23,9 @@ text_node <- (!"{{" [^<>])+ <TextNode>
 
 var_name          <- (&letter dot_alphanum*)
 dashed_var_name   <- (&letter dash_alphanum*)
-letter            <- [a-z]
-dot_alphanum      <- "."? [a-z0-9]+
-dash_alphanum     <- "-"? [a-z0-9]+
+letter            <- [_a-z]
+dot_alphanum      <- "."? [_a-z0-9]+
+dash_alphanum     <- "-"? [_a-z0-9]+
 
 sq_string_literal <-  "'" ([^'\\{]+ / mustache_node)*  "'"  %removeQuotes # TODO: escaping
 dq_string_literal <- "\"" ([^"\\{]+ / mustache_node)* "\""  %removeQuotes # TODO: escaping

@@ -1,13 +1,13 @@
 import assign from 'lodash.assign'
 import {parse} from './grammar'
 
-function compileAny(nodesTree, varVar) {
+function compileAny(nodesTree, context) {
   switch (nodesTree._type) {
     case 'DOMNode':
-      return compileDOM(nodesTree, varVar)
+      return compileDOM(nodesTree, context)
       break;
     case 'MustacheNode':
-      return compileMustache(nodesTree, varVar)
+      return compileMustache(nodesTree, context)
       break;
     case 'TextNode':
       return {code: JSON.stringify(nodesTree.text)}
@@ -18,19 +18,28 @@ function compileAny(nodesTree, varVar) {
   }
 }
 
-function compileMustache(nodesTree, varVar) {
+function compileMustache(nodesTree, context={}) {
   var code
   var varName
-  var compiledChild
+  var children
+  var compiledChildren
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text
-    code = varVar + '.' + varName
+    code = context.varName + '.' + varName
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name
+    children = nodesTree.section_node.expr_node.elements
     // TODO: keys for children
-    compiledChild = compileAny(nodesTree.section_node.expr_node, varName)
-    code = `${varVar}.${varName} && ${varVar}.${varName}.length ? ${varVar}.${varName}.map(function(${varName}){ return ${compiledChild.code} }) : null`
+    // TODO: wrap text nodes in span
+    if (children && children.length) {
+      compiledChildren = children.map((n, index) => compileAny(n, {varName}).code)
+      if (children.length === 1) {
+        code = `section(${context.varName}, "${varName}", function(${varName}){ return (${compiledChildren}) })`
+      } else {
+        code = `section(${context.varName}, "${varName}", function(${varName}){ return [${compiledChildren}] })`
+      }
+    }
   } else {
     code = 'null'
   }
@@ -41,13 +50,13 @@ function prerareStyle(styleString) {
   return styleString // TODO
 }
 
-function compileAttrs(varVar, acc, {name, value}) {
+function compileAttrs(context, acc, {name, value}) {
   if (!name || !value) { return acc }
   var attrKey = name.text
   var attrValue
 
   if (value._type === 'MustacheNode') {
-    attrValue = compileMustache(value, varVar).code
+    attrValue = compileMustache(value, context).code
   } else if (!value.elements) {
     attrValue = JSON.stringify(value.text)
   } else {
@@ -55,7 +64,7 @@ function compileAttrs(varVar, acc, {name, value}) {
       .filter(v => v.text)
       .map(v => {
         if (v._type === 'MustacheNode') {
-          return compileMustache(v, varVar).code
+          return compileMustache(v, context).code
         } else {
           return JSON.stringify(v.text)
         }
@@ -75,7 +84,7 @@ function compileAttrs(varVar, acc, {name, value}) {
   return acc + (acc ? ',' : '') + attrKey + ':' + attrValue
 }
 
-function compileDOM(nodesTree, varVar) {
+function compileDOM(nodesTree, context={}) {
   var currentNodeHTML = nodesTree
   var tagName
   var attrs, attrsContent
@@ -92,11 +101,11 @@ function compileDOM(nodesTree, varVar) {
   }
 
   tagName = tagName.text.trim()
-  attrsContent = attrs.reduce(compileAttrs.bind(null, varVar), '')
+  attrsContent = attrs.reduce(compileAttrs.bind(null, context), '')
   attrs = attrsContent ? '{' + attrsContent + '}' : null
 
   if (children && children.length) {
-    compiledChildren = children.map(n => compileAny(n, varVar))
+    compiledChildren = children.map(n => compileAny(n, context))
     return {code: `React.DOM.${tagName}(
         ${attrs}
         ${compiledChildren
@@ -148,9 +157,28 @@ module.exports = function(content) {
     'use strict'
     // compiled with schwartzman
     var React = require('react')
+    function includeKey(v, index) {
+      if (v.key === undefined) { v.key = index }
+      return v
+    }
+
+    function section(props, varName, fn) {
+      var obj = props[varName]
+      if (obj) {
+        if (obj.length !== void 0 && obj.map) {
+          return obj.length ? obj.map(includeKey).map(fn) : null
+        } else if (!!(obj && obj.constructor && obj.call && obj.apply)) {
+          return obj(props, fn)
+        } else {
+          return fn(obj)
+        }
+      } else {
+        return null
+      }
+    }
 
     module.exports = function (props) {
-      return (${compileDOM(parse(content, {actions, types}), 'props').code})
+      return (${compileDOM(parse(content, {actions, types}), {varName: 'props'}).code})
     }
   `
 }
