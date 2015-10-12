@@ -153,6 +153,16 @@ describe('schwartzman', function() {
         'React.DOM.p(null,inverted_section(props,"people",function(){return("x")}))'
       )
     })
+
+    it('compiles comment node', function () {
+      assert.equal(
+        parseAndCompile('<p>lol{{! comment }}</p>', {varName: 'props'}).replace(/ +/g, '').replace(/\n\n+/g, '\n'),
+        'React.DOM.p(\n'+
+        'null\n'+
+        ',"lol"//comment\n'+
+        ')'
+      )
+    })
   })
 
   describe('syntax errors', function () {

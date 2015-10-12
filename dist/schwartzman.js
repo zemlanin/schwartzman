@@ -68,6 +68,8 @@ function compileMustache(nodesTree) {
         code = 'inverted_section(' + context.varName + ', "' + varName + '", function(){ return [' + compiledChildren + '] })';
       }
     }
+  } else if (nodesTree.commented_node) {
+    code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n';
   }
   return { code: code };
 }
