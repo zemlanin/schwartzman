@@ -30,7 +30,7 @@ function compileAny(nodesTree, context) {
 function compileMustache(nodesTree) {
   var context = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
 
-  var code;
+  var code = 'null';
   var varName;
   var children;
   var compiledChildren;
@@ -42,6 +42,7 @@ function compileMustache(nodesTree) {
     varName = nodesTree.section_node.var_name;
     children = nodesTree.section_node.expr_node.elements;
     // TODO: keys for children
+    // TODO: wrap text nodes in span
     if (children && children.length) {
       compiledChildren = children.map(function (n, index) {
         return compileAny(n, { varName: varName }).code;
@@ -52,8 +53,21 @@ function compileMustache(nodesTree) {
         code = 'section(' + context.varName + ', "' + varName + '", function(' + varName + '){ return [' + compiledChildren + '] })';
       }
     }
-  } else {
-    code = 'null';
+  } else if (nodesTree.inverted_section_node) {
+    varName = nodesTree.inverted_section_node.var_name;
+    children = nodesTree.inverted_section_node.expr_node.elements;
+    // TODO: keys for children
+    // TODO: wrap text nodes in span
+    if (children && children.length) {
+      compiledChildren = children.map(function (n, index) {
+        return compileAny(n, {}).code;
+      });
+      if (children.length === 1) {
+        code = 'inverted_section(' + context.varName + ', "' + varName + '", function(){ return (' + compiledChildren + ') })';
+      } else {
+        code = 'inverted_section(' + context.varName + ', "' + varName + '", function(){ return [' + compiledChildren + '] })';
+      }
+    }
   }
   return { code: code };
 }
@@ -187,7 +201,7 @@ var types = {
 
 module.exports = function (content) {
   this.cacheable();
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n    function includeKey(v, index) {\n      if (v.key === undefined) { v.key = index }\n      return v\n    }\n\n    function section(props, varName, fn) {\n      var obj = props[varName]\n      if (obj) {\n        if (obj.length !== void 0 && obj.map) {\n          return obj.length ? obj.map(includeKey).map(fn) : null\n        } else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n          return obj(props, fn)\n        } else {\n          return fn(obj)\n        }\n      } else {\n        return null\n      }\n    }\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), { varName: 'props' }).code + ')\n    }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n    function includeKey(v, index) {\n      if (v.key === undefined) { v.key = index }\n      return v\n    }\n\n    function section(props, varName, fn) {\n      var obj = props[varName]\n      if (obj) {\n        if (obj.length !== void 0 && obj.map) {\n          return obj.length ? obj.map(includeKey).map(fn) : null\n        } else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n          return obj(props, fn)\n        } else {\n          return fn(obj)\n        }\n      } else {\n        return null\n      }\n    }\n\n    function inverted_section(props, varName, fn) {\n      var obj = props[varName]\n      if (!obj || obj.length && obj.length === 0) {\n        return fn()\n      } else {\n        return null\n      }\n    }\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), { varName: 'props' }).code + ')\n    }\n  ';
 };
 
 module.exports.lowLevel = {

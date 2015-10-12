@@ -19,7 +19,7 @@ function compileAny(nodesTree, context) {
 }
 
 function compileMustache(nodesTree, context={}) {
-  var code
+  var code = 'null'
   var varName
   var children
   var compiledChildren
@@ -40,8 +40,19 @@ function compileMustache(nodesTree, context={}) {
         code = `section(${context.varName}, "${varName}", function(${varName}){ return [${compiledChildren}] })`
       }
     }
-  } else {
-    code = 'null'
+  } else if (nodesTree.inverted_section_node) {
+    varName = nodesTree.inverted_section_node.var_name
+    children = nodesTree.inverted_section_node.expr_node.elements
+    // TODO: keys for children
+    // TODO: wrap text nodes in span
+    if (children && children.length) {
+      compiledChildren = children.map((n, index) => compileAny(n, {}).code)
+      if (children.length === 1) {
+        code = `inverted_section(${context.varName}, "${varName}", function(){ return (${compiledChildren}) })`
+      } else {
+        code = `inverted_section(${context.varName}, "${varName}", function(){ return [${compiledChildren}] })`
+      }
+    }
   }
   return {code}
 }
@@ -172,6 +183,15 @@ module.exports = function(content) {
         } else {
           return fn(obj)
         }
+      } else {
+        return null
+      }
+    }
+
+    function inverted_section(props, varName, fn) {
+      var obj = props[varName]
+      if (!obj || obj.length && obj.length === 0) {
+        return fn()
       } else {
         return null
       }

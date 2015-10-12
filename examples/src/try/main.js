@@ -13,7 +13,7 @@ var element = React.createElement(Component, {
     {name: 'Alice'},
     {name: 'Bob'},
   ],
-  'wrapper': function(props, fn){ console.log(fn(props)); return fn(props) },
+  'wrapper': function(props, fn){ return fn(props) },
 })
 
 console.log(React.renderToStaticMarkup(element), '\n\n')

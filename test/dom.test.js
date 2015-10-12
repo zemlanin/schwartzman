@@ -133,10 +133,24 @@ describe('schwartzman', function() {
       )
     })
 
+    it('compiles section node with mustache inside', function () {
+      assert.equal(
+        parseAndCompile('<span>{{#people}}{{name}},{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.span(null,section(props,"people",function(people){return[people.name,","]}))'
+      )
+    })
+
     it('compiles section node with dom inside', function () {
       assert.equal(
         parseAndCompile('<ul>{{#people}}<li>{{name}}</li>{{/people}}</ul>', {varName: 'props'}).replace(/\s+/g, ''),
         'React.DOM.ul(null,section(props,"people",function(people){return(React.DOM.li(null,people.name))}))'
+      )
+    })
+
+    it('compiles inverted section node with text inside', function () {
+      assert.equal(
+        parseAndCompile('<p>{{^people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.p(null,inverted_section(props,"people",function(){return("x")}))'
       )
     })
   })
