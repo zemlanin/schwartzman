@@ -5,7 +5,7 @@ open_html_tag       <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whit
 contained_html_tag  <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? "/>" whitespace?
 close_html_tag      <- "</" tag_name ">" whitespace?
 tag_name            <- [a-z]+
-dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name / mustache_node)
+dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name / mustache_node) whitespace?
 
 commented_html <- "<!--" (!"-->" .)* "-->" whitespace?
 
@@ -27,9 +27,9 @@ text_node <- (!"{{" (!"}}" [^<>]))+ <TextNode>
 
 var_name          <- (&letter dot_alphanum*)
 dashed_var_name   <- (&letter dash_alphanum*)
-letter            <- [_a-z]
-dot_alphanum      <- "."? [_a-z0-9]+
-dash_alphanum     <- "-"? [_a-z0-9]+
+letter            <- [_a-zA-Z]
+dot_alphanum      <- "."? [_a-zA-Z0-9]+
+dash_alphanum     <- "-"? [_a-zA-Z0-9]+
 
 sq_string_literal <-  "'" ([^'\\{]+ / mustache_node)*  "'"  %removeQuotes # TODO: escaping
 dq_string_literal <- "\"" ([^"\\{]+ / mustache_node)* "\""  %removeQuotes # TODO: escaping
