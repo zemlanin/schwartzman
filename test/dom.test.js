@@ -48,6 +48,30 @@ describe('schwartzman', function() {
     })
   })
 
+  describe('parse', function () {
+    it('syntax errors: dom tree', function () {
+      assert.throws(parse.bind(null, "<p><b></p></b>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p><img></p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p><</p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p>></p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p %></p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p>"), /SyntaxError/)
+    })
+
+    it('syntax errors: "single escaped child" limitation', function () {
+      assert.throws(parse.bind(null, "<p>{{{ one }}}{{{ two }}}</p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p>{{& one }}{{{ two }}}</p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p>{{{ one }}}{{& two }}</p>"), /SyntaxError/)
+      assert.throws(parse.bind(null, "<p>{{{ one }}}text</p>"), /SyntaxError/)
+    })
+
+    it('mustache: multicase vars', function () {
+      assert.doesNotThrow(parse.bind(null, "<p>{{{ one }}}</p>"))
+      assert.doesNotThrow(parse.bind(null, "<p>{{{ ONE }}}</p>"))
+      assert.doesNotThrow(parse.bind(null, "<p>{{{ oNe }}}</p>"))
+    })
+  })
+
   describe('compileDOM', function () {
     it('compiles single simple node', function () {
       assert.equal(
@@ -80,6 +104,14 @@ describe('schwartzman', function() {
         'React.DOM.p(null,"lol")'
       )
     })
+
+    it('compiles single node with multiple attrs', function () {
+      assert.equal(
+        parseAndCompile("<div data-x='x' data-y='y'></div>"),
+        'React.DOM.div({"data-x":"x","data-y":"y"})'
+      )
+    })
+
 
     it('compiles nested nodes', function () {
       assert.equal(
@@ -163,16 +195,17 @@ describe('schwartzman', function() {
         ')'
       )
     })
-  })
 
-  describe('syntax errors', function () {
-    it('dom', function () {
-      assert.throws(parse.bind(null, "<p><b></p></b>"), /SyntaxError/)
-      assert.throws(parse.bind(null, "<p><img></p>"), /SyntaxError/)
-      assert.throws(parse.bind(null, "<p><</p>"), /SyntaxError/)
-      assert.throws(parse.bind(null, "<p>></p>"), /SyntaxError/)
-      assert.throws(parse.bind(null, "<p %></p>"), /SyntaxError/)
-      assert.throws(parse.bind(null, "<p>"), /SyntaxError/)
+    it('compiles escaped node', function () {
+      assert.equal(
+        parseAndCompile('<p>{{{ amp }}}</p>', {varName: 'props'}).replace(/ +/g, ''),
+        'React.DOM.p({"dangerouslySetInnerHTML":{"__html":props.amp}})'
+      )
+
+      assert.equal(
+        parseAndCompile('<p>{{& amp }}</p>', {varName: 'props'}).replace(/ +/g, ''),
+        'React.DOM.p({"dangerouslySetInnerHTML":{"__html":props.amp}})'
+      )
     })
   })
 })

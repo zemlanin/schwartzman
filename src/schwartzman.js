@@ -1,6 +1,17 @@
 import assign from 'lodash.assign'
 import {parse} from './grammar'
 
+function isEscapedMustache(node) {
+  return (
+    node._type === 'MustacheNode'
+    && node.variable_node
+    && (
+      node.variable_node.text.slice(0, 3) == '{{{' ||
+      node.variable_node.text.slice(0, 3) == '{{&'
+    )
+  )
+}
+
 function compileAny(nodesTree, context) {
   switch (nodesTree._type) {
     case 'DOMNode':
@@ -56,23 +67,23 @@ function compileMustache(nodesTree, context={}) {
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n'
   }
-  return {code}
+  return {code, escaped: isEscapedMustache(nodesTree)}
 }
 
 function prerareStyle(styleString) {
   return styleString // TODO
 }
 
-function compileAttrs(context, acc, {name, value}) {
+function compileAttrs(context, acc, {name, value, inner}) {
   if (!name || !value) { return acc }
-  var attrKey = name.text
+  var attrKey = inner ? name : name.text
   var attrValue
 
   if (value._type === 'MustacheNode') {
     attrValue = compileMustache(value, context).code
-  } else if (!value.elements) {
+  } else if (!value.elements && !inner) {
     attrValue = JSON.stringify(value.text)
-  } else {
+  } else if (!inner) {
     attrValue = value.elements
       .filter(v => v.text)
       .map(v => {
@@ -88,8 +99,13 @@ function compileAttrs(context, acc, {name, value}) {
   switch (attrKey) {
     case 'class':
       attrKey = 'className'
+      break
     case 'style':
       attrValue = prerareStyle(attrValue)
+      break
+    case 'dangerouslySetInnerHTML':
+      attrValue = value
+      break
   }
 
   attrKey = JSON.stringify(attrKey)
@@ -114,12 +130,27 @@ function compileDOM(nodesTree, context={}) {
   }
 
   tagName = tagName.text.trim()
-  attrsContent = attrs.reduce(compileAttrs.bind(null, context), '')
-  attrs = attrsContent ? '{' + attrsContent + '}' : null
 
   if (children && children.length) {
     compiledChildren = children.map(n => compileAny(n, context))
-    return {code: `React.DOM.${tagName}(
+
+    if (compiledChildren.length === 1 && compiledChildren[0].escaped) {
+      attrs = attrs.concat({
+        name: 'dangerouslySetInnerHTML',
+        value: `{"__html": ${compiledChildren[0].code}}`,
+        inner: true,
+      })
+      compiledChildren = null
+    } else if (compiledChildren.filter(n => n.escaped).length) {
+      throw new Error('Maximum one escaped child node allowed')
+    }
+  }
+
+  attrsContent = attrs.reduce(compileAttrs.bind(null, context), '')
+  attrs = attrsContent ? '{' + attrsContent + '}' : null
+  if (compiledChildren && !attrsContent.dangerouslySetInnerHTML) {
+    return {
+      code: `React.DOM.${tagName}(
         ${attrs}
         ${compiledChildren
           .reduce( // remove commas before comments
@@ -127,7 +158,8 @@ function compileDOM(nodesTree, context={}) {
             ','
           )
         }
-      )\n`}
+      )\n`,
+    }
   }
 
   return {code: `React.DOM.${tagName}(${attrs})\n`}
@@ -139,6 +171,11 @@ const actions = {
     if (open.tag_name.text != close.tag_name.text) {
       throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
     }
+
+    if (nodes.elements.length > 1 && nodes.elements.filter(isEscapedMustache).length) {
+      throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
+    }
+
     return { open, nodes, close }
   },
   validate_mustache: (input, start, end, [open, expr_node, close]) => {

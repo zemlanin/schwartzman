@@ -13,7 +13,9 @@ var element = React.createElement(Component, {
     {name: 'Alice'},
     {name: 'Bob'},
   ],
-  'wrapper': function(props, fn){ return fn(props) },
+  wrapper: function (props, fn) { return fn(props) },
+  noEscape: '<i>lol</i>',
+  amp: '&amp;',
 })
 
 console.log(React.renderToStaticMarkup(element), '\n\n')

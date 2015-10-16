@@ -8,7 +8,7 @@
     -- {{name}} --
   {{/wrapper}}
   <!--<i style="width: 200px"></i>-->
-  <i data-x="x"></i>
+  <i data-x="x" data-y="y"></i>
   <i data-x={{name}}></i>
   <!--<i style="width: 200px"></i>-->
   <i data-x="test {{name}}"></i>
@@ -27,4 +27,6 @@
   <span>
     {{^animals}}no animals{{/animals}}
   </span>
+  <b>{{{ noEscape }}}</b>
+  <b>{{{ amp }}}</b>
 </div>

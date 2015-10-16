@@ -10,6 +10,10 @@ var _lodashAssign2 = _interopRequireDefault(_lodashAssign);
 
 var _grammar = require('./grammar');
 
+function isEscapedMustache(node) {
+  return node._type === 'MustacheNode' && node.variable_node && (node.variable_node.text.slice(0, 3) == '{{{' || node.variable_node.text.slice(0, 3) == '{{&');
+}
+
 function compileAny(nodesTree, context) {
   switch (nodesTree._type) {
     case 'DOMNode':
@@ -71,7 +75,7 @@ function compileMustache(nodesTree) {
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n';
   }
-  return { code: code };
+  return { code: code, escaped: isEscapedMustache(nodesTree) };
 }
 
 function prerareStyle(styleString) {
@@ -81,18 +85,19 @@ function prerareStyle(styleString) {
 function compileAttrs(context, acc, _ref) {
   var name = _ref.name;
   var value = _ref.value;
+  var inner = _ref.inner;
 
   if (!name || !value) {
     return acc;
   }
-  var attrKey = name.text;
+  var attrKey = inner ? name : name.text;
   var attrValue;
 
   if (value._type === 'MustacheNode') {
     attrValue = compileMustache(value, context).code;
-  } else if (!value.elements) {
+  } else if (!value.elements && !inner) {
     attrValue = JSON.stringify(value.text);
-  } else {
+  } else if (!inner) {
     attrValue = value.elements.filter(function (v) {
       return v.text;
     }).map(function (v) {
@@ -107,8 +112,13 @@ function compileAttrs(context, acc, _ref) {
   switch (attrKey) {
     case 'class':
       attrKey = 'className';
+      break;
     case 'style':
       attrValue = prerareStyle(attrValue);
+      break;
+    case 'dangerouslySetInnerHTML':
+      attrValue = value;
+      break;
   }
 
   attrKey = JSON.stringify(attrKey);
@@ -135,17 +145,35 @@ function compileDOM(nodesTree) {
   }
 
   tagName = tagName.text.trim();
-  attrsContent = attrs.reduce(compileAttrs.bind(null, context), '');
-  attrs = attrsContent ? '{' + attrsContent + '}' : null;
 
   if (children && children.length) {
     compiledChildren = children.map(function (n) {
       return compileAny(n, context);
     });
-    return { code: 'React.DOM.' + tagName + '(\n        ' + attrs + '\n        ' + compiledChildren.reduce( // remove commas before comments
+
+    if (compiledChildren.length === 1 && compiledChildren[0].escaped) {
+      attrs = attrs.concat({
+        name: 'dangerouslySetInnerHTML',
+        value: '{"__html": ' + compiledChildren[0].code + '}',
+        inner: true
+      });
+      compiledChildren = null;
+    } else if (compiledChildren.filter(function (n) {
+      return n.escaped;
+    }).length) {
+      throw new Error('Maximum one escaped child node allowed');
+    }
+  }
+
+  attrsContent = attrs.reduce(compileAttrs.bind(null, context), '');
+  attrs = attrsContent ? '{' + attrsContent + '}' : null;
+  if (compiledChildren && !attrsContent.dangerouslySetInnerHTML) {
+    return {
+      code: 'React.DOM.' + tagName + '(\n        ' + attrs + '\n        ' + compiledChildren.reduce( // remove commas before comments
       function (acc, v) {
         return acc.replace(/,$/, '') + (v.code.indexOf('//') === 0 ? '' : ',') + v.code;
-      }, ',') + '\n      )\n' };
+      }, ',') + '\n      )\n'
+    };
   }
 
   return { code: 'React.DOM.' + tagName + '(' + attrs + ')\n' };
@@ -170,6 +198,11 @@ var actions = {
     if (open.tag_name.text != close.tag_name.text) {
       throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
     }
+
+    if (nodes.elements.length > 1 && nodes.elements.filter(isEscapedMustache).length) {
+      throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
+    }
+
     return { open: open, nodes: nodes, close: close };
   },
   validate_mustache: function validate_mustache(input, start, end, _ref4) {
