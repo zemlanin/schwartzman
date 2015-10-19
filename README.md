@@ -29,6 +29,36 @@ module.exports = function (props) {
 }
 ```
 
+## usage
+Add in your webpack.config.js
+* `{test: /\.jsx\.mustache$/, loader: "schwartzman"}` to `module.loaders`
+* `'.jsx.mustache'` to `resolve.extensions`
+
+```js
+module.exports = {
+  entry: {
+    // ...
+  },
+  output: {
+    // ...
+  },
+  module: {
+    loaders: [
+      // ...
+      {test: /\.jsx\.mustache$/, loader: "schwartzman"},
+    ],
+  },
+  resolve: {
+    extensions: [
+      // ...
+      '.jsx.mustache',
+    ],
+    // ...
+  }
+  // ...
+}
+```
+
 ## setup
 ```bash
 $ npm i

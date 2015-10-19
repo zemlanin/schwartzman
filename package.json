@@ -1,7 +1,7 @@
 {
   "name": "schwartzman",
-  "version": "0.0.1",
-  "description": "TODO",
+  "version": "0.1.0",
+  "description": "Webpack loader for Mustache",
   "main": "dist/schwartzman.js",
   "repository": {
     "type": "git",
