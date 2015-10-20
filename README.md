@@ -64,3 +64,8 @@ module.exports = {
 $ npm i
 $ make # make examples
 ```
+
+## TODO
+* [ ] compatability with React 0.14 (separated ReactDOM module)
+* [ ] DOM events handlers (onClick, onFocus, etc.) `<div {{#onClick}}onClick={{f}}{{/onClick}}`
+* [ ] style parsing (`style="margin-top: 20px"` => `"style": {"marginTop": "20px"}`)
