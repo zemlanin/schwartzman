@@ -9,6 +9,7 @@
   {{/wrapper}}
   <!--<i style="width: 200px"></i>-->
   <i data-x="x" data-y="y"></i>
+  <i data-x="x y"></i>
   <i data-x={{name}}></i>
   <!--<i style="width: 200px"></i>-->
   <i data-x="test {{name}}"></i>
@@ -30,4 +31,6 @@
   <b>{{{ noEscape }}}</b>
   <b>{{{ amp }}}</b>
   <b checked>{{{ amp }}}</b>
+  <div class={{#amp}}lol{{/amp}} />
+  <div {{#amp}}checked{{/amp}} />
 </div>

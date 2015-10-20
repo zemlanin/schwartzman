@@ -82,10 +82,32 @@ function prerareStyle(styleString) {
   return styleString; // TODO
 }
 
-function compileAttrs(context, acc, _ref) {
-  var name = _ref.name;
-  var value = _ref.value;
-  var inner = _ref.inner;
+function compileAttrsMustache(context, node) {
+  var code = 'null';
+
+  if (node.attr_section_node) {
+    var varName = node.attr_section_node.var_name;
+    var child = node.attr_section_node.expr_node.text;
+    code = '"' + child + '": !!' + context.varName + '.' + varName;
+  } else if (node.attr_inverted_section_node) {
+    var varName = node.attr_inverted_section_node.var_name;
+    var child = node.attr_inverted_section_node.expr_node.text;
+    code = '"' + child + '": !' + context.varName + varName;
+  } else if (node.commented_node) {
+    code = '// ' + node.commented_node.text_node.text.replace('\n', ' ') + '\n';
+  }
+  return { code: code, escaped: isEscapedMustache(node) };
+}
+
+function compileAttrs(context, acc, node) {
+  var name = node.name;
+  var value = node.value;
+  var inner = node.inner;
+  var _type = node._type;
+
+  if (_type === 'MustacheNode') {
+    return acc + (acc ? ',' : '') + compileAttrsMustache(context, node).code;
+  }
 
   if (!name) {
     return acc;
@@ -182,12 +204,12 @@ function compileDOM(nodesTree) {
 }
 
 var actions = {
-  removeQuotes: function removeQuotes(input, start, end, _ref2) {
-    var _ref22 = _slicedToArray(_ref2, 3);
+  removeQuotes: function removeQuotes(input, start, end, _ref) {
+    var _ref2 = _slicedToArray(_ref, 3);
 
-    var lq = _ref22[0];
-    var text = _ref22[1];
-    var rq = _ref22[2];
+    var lq = _ref2[0];
+    var text = _ref2[1];
+    var rq = _ref2[2];
     return text;
   },
   validate: function validate(input, start, end, _ref3) {

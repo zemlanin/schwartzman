@@ -74,7 +74,30 @@ function prerareStyle(styleString) {
   return styleString // TODO
 }
 
-function compileAttrs(context, acc, {name, value, inner}) {
+function compileAttrsMustache(context, node) {
+  var code = 'null'
+
+  if (node.attr_section_node) {
+    let varName = node.attr_section_node.var_name
+    let child = node.attr_section_node.expr_node.text
+    code = `"${child}": !!${context.varName}.${varName}`
+  } else if (node.attr_inverted_section_node) {
+    let varName = node.attr_inverted_section_node.var_name
+    let child = node.attr_inverted_section_node.expr_node.text
+    code = `"${child}": !${context.varName}${varName}`
+  } else if (node.commented_node) {
+    code = '// ' + node.commented_node.text_node.text.replace('\n', ' ') + '\n'
+  }
+  return {code, escaped: isEscapedMustache(node)}
+}
+
+function compileAttrs(context, acc, node) {
+  let {name, value, inner, _type} = node
+
+  if (_type === 'MustacheNode') {
+    return acc + (acc ? ',' : '') + compileAttrsMustache(context, node).code
+  }
+
   if (!name) { return acc }
   var attrKey = inner ? name : name.text
   var attrValue
