@@ -27,6 +27,15 @@ describe('schwartzman', function() {
       )
     })
 
+    it('correctly prepare name-only attrs', function () {
+      assert.deepEqual(
+        LL.compileAttrs('props', '', {
+          name: {text: 'x'}
+        }),
+        '"x":true'
+      )
+    })
+
     it('correctly prepare `class` attr', function () {
       assert.deepEqual(
         LL.compileAttrs('props', '', {
@@ -44,6 +53,19 @@ describe('schwartzman', function() {
           value: {text: 'width: "200px"'}
         }),
         '"style":"width: \\"200px\\""'
+      )
+    })
+  })
+
+  describe('compileAttrs mustache', function () {
+    xit('correctly prepare ordinary attrs', function () {
+      assert.deepEqual(
+        LL.compileAttrs('props', '', {
+          name: {text: 'x'},
+          value: {text: 'x'},
+          _type: 'MustacheNode'
+        }),
+        '"x":"x"'
       )
     })
   })

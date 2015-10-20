@@ -75,11 +75,13 @@ function prerareStyle(styleString) {
 }
 
 function compileAttrs(context, acc, {name, value, inner}) {
-  if (!name || !value) { return acc }
+  if (!name) { return acc }
   var attrKey = inner ? name : name.text
   var attrValue
 
-  if (value._type === 'MustacheNode') {
+  if (!value) {
+    attrValue = 'true'
+  } else if (value._type === 'MustacheNode') {
     attrValue = compileMustache(value, context).code
   } else if (!value.elements && !inner) {
     attrValue = JSON.stringify(value.text)
