@@ -92,7 +92,7 @@ function compileAttrsMustache(context, node) {
   } else if (node.attr_inverted_section_node) {
     var varName = node.attr_inverted_section_node.var_name;
     var child = node.attr_inverted_section_node.expr_node.text;
-    code = '"' + child + '": !' + context.varName + varName;
+    code = '"' + child + '": !' + context.varName + '.' + varName;
   } else if (node.commented_node) {
     code = '// ' + node.commented_node.text_node.text.replace('\n', ' ') + '\n';
   }

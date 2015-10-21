@@ -14,12 +14,12 @@ function parseAndCompile(tmpl, v) {
 describe('schwartzman', function() {
   describe('compileAttrs', function () {
     it('empty arg returns an object', function () {
-      assert.deepEqual(LL.compileAttrs('props', '', {}), '')
+      assert.deepEqual(LL.compileAttrs({varName: 'props'}, '', {}), '')
     })
 
     it('correctly prepare ordinary attrs', function () {
       assert.deepEqual(
-        LL.compileAttrs('props', '', {
+        LL.compileAttrs({varName: 'props'}, '', {
           name: {text: 'x'},
           value: {text: 'x'}
         }),
@@ -29,7 +29,7 @@ describe('schwartzman', function() {
 
     it('correctly prepare name-only attrs', function () {
       assert.deepEqual(
-        LL.compileAttrs('props', '', {
+        LL.compileAttrs({varName: 'props'}, '', {
           name: {text: 'x'}
         }),
         '"x":true'
@@ -38,7 +38,7 @@ describe('schwartzman', function() {
 
     it('correctly prepare `class` attr', function () {
       assert.deepEqual(
-        LL.compileAttrs('props', '', {
+        LL.compileAttrs({varName: 'props'}, '', {
           name: {text: 'class'},
           value: {text: 'x'}
         }),
@@ -48,7 +48,7 @@ describe('schwartzman', function() {
 
     it('correctly prepare `style` attr', function () {
       assert.deepEqual(
-        LL.compileAttrs('props', '', {
+        LL.compileAttrs({varName: 'props'}, '', {
           name: {text: 'style'},
           value: {text: 'width: "200px"'}
         }),
@@ -57,15 +57,30 @@ describe('schwartzman', function() {
     })
   })
 
-  describe('compileAttrs mustache', function () {
-    xit('correctly prepare ordinary attrs', function () {
+  describe('compileAttrs: mustache', function () {
+    it('correctly prepare section attr', function () {
       assert.deepEqual(
-        LL.compileAttrs('props', '', {
-          name: {text: 'x'},
-          value: {text: 'x'},
+        LL.compileAttrs({varName: 'props'}, '', {
+          attr_section_node: {
+            var_name: 'x',
+            expr_node: {text: 'y'}
+          },
           _type: 'MustacheNode'
         }),
-        '"x":"x"'
+        '"y": !!props.x'
+      )
+    })
+
+    it('correctly prepare inverted section attr', function () {
+      assert.deepEqual(
+        LL.compileAttrs({varName: 'props'}, '', {
+          attr_inverted_section_node: {
+            var_name: 'x',
+            expr_node: {text: 'y'}
+          },
+          _type: 'MustacheNode'
+        }),
+        '"y": !props.x'
       )
     })
   })
@@ -158,14 +173,7 @@ describe('schwartzman', function() {
     })
   })
 
-  describe('compileMustache', function () {
-    it('compiles variable node', function () {
-      assert.equal(
-        parseAndCompile("<p>{{lol}}</p>", {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,props.lol)'
-      )
-    })
-
+  describe('compileMustache: attrs', function () {
     it('compiles variable node as attr value', function () {
       assert.equal(
         parseAndCompile("<p lol={{lol}}></p>", {varName: 'props'}).replace(/\s+/g, ''),
@@ -177,6 +185,27 @@ describe('schwartzman', function() {
       assert.equal(
         parseAndCompile('<p lol="test {{lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
         'React.DOM.p({"lol":"test"+props.lol})' // loses space because of replace inside a test
+      )
+
+      assert.equal(
+        parseAndCompile('<p lol="test {{lol.lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.p({"lol":"test"+props.lol.lol})' // loses space because of replace inside a test
+      )
+    })
+
+    it('compiles section node inside attr value', function () {
+      assert.equal(
+        parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.p({"lol":"test"+section(props,"lol",function(lol){return("fest")})})' // loses space because of replace inside a test
+      )
+    })
+  })
+
+  describe('compileMustache: children', function () {
+    it('compiles variable node', function () {
+      assert.equal(
+        parseAndCompile("<p>{{lol}}</p>", {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.p(null,props.lol)'
       )
     })
 
