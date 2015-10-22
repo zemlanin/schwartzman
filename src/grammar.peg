@@ -7,11 +7,11 @@ close_html_tag      <- "</" tag_name ">" whitespace?
 tag_name            <- [a-z]+
 dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name / mustache_node) whitespace? / name:dashed_var_name whitespace? / attr_mustache_node
 
-commented_html <- "<!--" (!"-->" .)* "-->" whitespace?
+commented_html      <- "<!--" (!"-->" .)* "-->" whitespace?
 
-attr_mustache_node  <- (attr_section_node whitespace?) <MustacheNode> / (attr_inverted_section_node whitespace?) <MustacheNode> / (commented_node whitespace?) <MustacheNode> # TODO: VariableNode | PartialNode | SetDelimiterNode | LambdaNode
-attr_section_node                <- open_section_node var_name? close_section_node %validate_mustache
-attr_inverted_section_node       <- open_inverted_section_node var_name? close_section_node %validate_mustache
+attr_mustache_node          <- (attr_section_node whitespace?) <MustacheNode> / (attr_inverted_section_node whitespace?) <MustacheNode> / (commented_node whitespace?) <MustacheNode> # TODO: VariableNode | PartialNode | SetDelimiterNode | LambdaNode
+attr_section_node           <- open_section_node var_name? close_section_node %validate_mustache
+attr_inverted_section_node  <- open_inverted_section_node var_name? close_section_node %validate_mustache
 
 expr_node       <- dom_node / mustache_node / text_node
 dumb_expr_node  <- dom_node / text_node
@@ -27,7 +27,7 @@ inverted_section_node       <- open_inverted_section_node dumb_expr_node* close_
 open_inverted_section_node  <- "{{^" whitespace? var_name whitespace? "}}" whitespace?
 commented_node              <- "{{!" whitespace? text_node whitespace? "}}" whitespace?
 
-text_node <- (!"{{" (!"}}" [^<>]))+ <TextNode>
+text_node         <- (!"{{" (!"}}" [^<>]))+ <TextNode>
 
 var_name          <- (&letter dot_alphanum*)
 dashed_var_name   <- (&letter dash_alphanum*)
