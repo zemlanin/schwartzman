@@ -38,23 +38,29 @@ function compileMustache(nodesTree) {
   var varName;
   var children;
   var compiledChildren;
+  var innerName;
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text;
-    code = context.varName + '.' + varName;
+    if (varName.indexOf('.') !== -1 && context.innerName && varName.indexOf(context.innerName + '.') === 0) {
+      code = varName;
+    } else {
+      code = context.varName + '.' + varName;
+    }
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name;
+    innerName = nodesTree.section_node.inner_name;
     children = nodesTree.section_node.expr_node.elements;
     // TODO: keys for children
     // TODO: wrap text nodes in span
     if (children && children.length) {
       compiledChildren = children.map(function (n, index) {
-        return compileAny(n, { varName: varName }).code;
+        return compileAny(n, { varName: context.varName, innerName: innerName }).code;
       });
       if (children.length === 1) {
-        code = 'section(' + context.varName + ', "' + varName + '", function(' + varName + '){ return (' + compiledChildren + ') })';
+        code = innerName ? 'section(' + context.varName + ', "' + varName + '", function(' + innerName + '){ return (' + compiledChildren + ') })' : 'section(' + context.varName + ', "' + varName + '", function(){ return (' + compiledChildren + ') })';
       } else {
-        code = 'section(' + context.varName + ', "' + varName + '", function(' + varName + '){ return [' + compiledChildren + '] })';
+        code = innerName ? 'section(' + context.varName + ', "' + varName + '", function(' + innerName + '){ return [' + compiledChildren + '] })' : 'section(' + context.varName + ', "' + varName + '", function(){ return [' + compiledChildren + '] })';
       }
     }
   } else if (nodesTree.inverted_section_node) {
@@ -236,10 +242,10 @@ var actions = {
     var expr_node = _ref42[1];
     var close = _ref42[2];
 
-    if (open.var_name.text != close.var_name.text) {
+    if (open.dot_var_name.text != close.dot_var_name.text) {
       throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
     }
-    return { var_name: open.var_name.text, expr_node: expr_node };
+    return { var_name: open.dot_var_name.text, inner_name: (open.inner_name || {}).text, expr_node: expr_node };
   }
 };
 

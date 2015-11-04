@@ -196,7 +196,7 @@ describe('schwartzman', function() {
     it('compiles section node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p({"lol":"test"+section(props,"lol",function(lol){return("fest")})})' // loses space because of replace inside a test
+        'React.DOM.p({"lol":"test"+section(props,"lol",function(){return("fest")})})' // loses space because of replace inside a test
       )
     })
   })
@@ -212,21 +212,35 @@ describe('schwartzman', function() {
     it('compiles section node with text inside', function () {
       assert.equal(
         parseAndCompile('<p>{{#people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,section(props,"people",function(people){return("x")}))'
+        'React.DOM.p(null,section(props,"people",function(){return("x")}))'
       )
     })
 
     it('compiles section node with mustache inside', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{name}},{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.span(null,section(props,"people",function(people){return[people.name,","]}))'
+        'React.DOM.span(null,section(props,"people",function(){return[props.name,","]}))'
       )
     })
 
     it('compiles section node with dom inside', function () {
       assert.equal(
         parseAndCompile('<ul>{{#people}}<li>{{name}}</li>{{/people}}</ul>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.ul(null,section(props,"people",function(people){return(React.DOM.li(null,people.name))}))'
+        'React.DOM.ul(null,section(props,"people",function(){return(React.DOM.li(null,props.name))}))'
+      )
+    })
+
+    it('compiles section node with inner names', function () {
+      assert.equal(
+        parseAndCompile('<span>{{#people p}}{{p.name}},{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.span(null,section(props,"people",function(p){return[p.name,","]}))'
+      )
+    })
+
+    it('compiles section node with inner names', function () {
+      assert.equal(
+        parseAndCompile('<ul>{{#people p}}<li>{{p.name}}</li>{{/people}}</ul>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.ul(null,section(props,"people",function(p){return(React.DOM.li(null,p.name))}))'
       )
     })
 
