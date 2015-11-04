@@ -1,6 +1,6 @@
 {
   "name": "schwartzman",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Webpack loader for Mustache",
   "main": "dist/schwartzman.js",
   "repository": {
