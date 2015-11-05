@@ -196,7 +196,14 @@ describe('schwartzman', function() {
     it('compiles section node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p({"lol":"test"+section(props,"lol",function(__S_0_lol){return("fest")})})' // loses space because of replace inside a test
+        'React.DOM.p({"lol":"test"+section([props],"lol",function(__S_0_lol){return("fest")})})' // loses space because of replace inside a test
+      )
+    })
+
+    it('compiles nested section nodes', function () {
+      assert.equal(
+        parseAndCompile('<div>{{#people}}<input {{#checked}}checked{{/checked}}/>{{/people}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.div(null,section([props],"people",function(__S_1_people){return(React.DOM.input({"checked":!!scs([__S_1_people,props],"checked")}))}))'
       )
     })
   })
@@ -212,28 +219,42 @@ describe('schwartzman', function() {
     it('compiles section node with text inside', function () {
       assert.equal(
         parseAndCompile('<p>{{#people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,section(props,"people",function(__S_1_people){return("x")}))'
+        'React.DOM.p(null,section([props],"people",function(__S_2_people){return("x")}))'
       )
     })
 
     it('compiles section node with mustache inside', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{name}},{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.span(null,section(props,"people",function(__S_2_people){return[scs([__S_2_people,props],"name"),","]}))'
+        'React.DOM.span(null,section([props],"people",function(__S_3_people){return[scs([__S_3_people,props],"name"),","]}))'
       )
     })
 
     it('compiles section node with dom inside', function () {
       assert.equal(
         parseAndCompile('<ul>{{#people}}<li>{{name}}</li>{{/people}}</ul>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.ul(null,section(props,"people",function(__S_3_people){return(React.DOM.li(null,scs([__S_3_people,props],"name")))}))'
+        'React.DOM.ul(null,section([props],"people",function(__S_4_people){return(React.DOM.li(null,scs([__S_4_people,props],"name")))}))'
       )
     })
 
     it('compiles inverted section node with text inside', function () {
       assert.equal(
         parseAndCompile('<p>{{^people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,inverted_section(props,"people",function(){return("x")}))'
+        'React.DOM.p(null,inverted_section([props],"people",function(){return("x")}))'
+      )
+    })
+
+    it('compiles nested section nodes', function () {
+      assert.equal(
+        parseAndCompile('<span>{{#people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.span(null,section([props],"people",function(__S_5_people){return(section([__S_5_people,props],"phone",function(__S_6_phone){return(scs([__S_6_phone,__S_5_people,props],"local"))}))}))'
+      )
+    })
+
+    it('compiles nested inverted section nodes', function () {
+      assert.equal(
+        parseAndCompile('<span>{{^people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.span(null,inverted_section([props],"people",function(){return(section([props],"phone",function(__S_7_phone){return(scs([__S_7_phone,props],"local"))}))}))'
       )
     })
 

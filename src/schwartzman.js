@@ -36,7 +36,7 @@ function compileMustache(nodesTree, context={}) {
   var varName
   var children
   var compiledChildren
-  var scopes = (context.scopes || ['props']).slice()
+  const scopes = context.scopes || ['props']
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text
@@ -48,19 +48,18 @@ function compileMustache(nodesTree, context={}) {
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name
     let newScope = `__S_${id++}_${varName.replace(/[^a-zA-Z0-9\_]/, '')}`
-    scopes.unshift(newScope)
     children = nodesTree.section_node.expr_node.elements
     // TODO: keys for children
     // TODO: wrap text nodes in span
     if (children && children.length) {
       compiledChildren = children.map((n, index) => compileAny(
         n,
-        {varName: context.varName, scopes}
+        {varName: context.varName, scopes: [newScope].concat(scopes)}
       ).code)
       if (children.length === 1) {
-        code = `section(${context.varName}, "${varName}", function(${newScope}){ return (${compiledChildren}) })`
+        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildren}) })`
       } else {
-        code = `section(${context.varName}, "${varName}", function(${newScope}){ return [${compiledChildren}] })`
+        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}] })`
       }
     }
   } else if (nodesTree.inverted_section_node) {
@@ -71,9 +70,9 @@ function compileMustache(nodesTree, context={}) {
     if (children && children.length) {
       compiledChildren = children.map((n, index) => compileAny(n, context).code)
       if (children.length === 1) {
-        code = `inverted_section(${context.varName}, "${varName}", function(){ return (${compiledChildren}) })`
+        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return (${compiledChildren}) })`
       } else {
-        code = `inverted_section(${context.varName}, "${varName}", function(){ return [${compiledChildren}] })`
+        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}] })`
       }
     }
   } else if (nodesTree.commented_node) {
@@ -88,15 +87,24 @@ function prerareStyle(styleString) {
 
 function compileAttrsMustache(context, node) {
   var code = 'null'
+  const scopes = (context.scopes || ['props']).slice()
 
   if (node.attr_section_node) {
     let varName = node.attr_section_node.var_name
     let child = node.attr_section_node.expr_node.text
-    code = `"${child}": !!${context.varName}.${varName}`
+    if (scopes.length == 1) {
+      code = `"${child}": !!props.${varName}`
+    } else {
+      code = `"${child}": !!scs([${scopes.join(',')}], "${varName}")`
+    }
   } else if (node.attr_inverted_section_node) {
     let varName = node.attr_inverted_section_node.var_name
     let child = node.attr_inverted_section_node.expr_node.text
-    code = `"${child}": !${context.varName}.${varName}`
+    if (scopes.length == 1) {
+      code = `"${child}": !props.${varName}`
+    } else {
+      code = `"${child}": !scs([${scopes.join(',')}], "${varName}")`
+    }
   } else if (node.commented_node) {
     code = '// ' + node.commented_node.text_node.text.replace('\n', ' ') + '\n'
   }
@@ -265,13 +273,11 @@ module.exports = function(content) {
       return null
     }
 
-    function section(props, varName, fn) {
-      var obj = props[varName]
+    function section(scopes, varName, fn) {
+      var obj = scs(scopes, varName)
       if (obj) {
         if (obj.length !== void 0 && obj.map) {
           return obj.length ? obj.map(includeKey).map(fn) : null
-        } else if (!!(obj && obj.constructor && obj.call && obj.apply)) {
-          return obj(props, fn)
         } else {
           return fn(obj)
         }
@@ -280,8 +286,8 @@ module.exports = function(content) {
       }
     }
 
-    function inverted_section(props, varName, fn) {
-      var obj = props[varName]
+    function inverted_section(scopes, varName, fn) {
+      var obj = scs(scopes, varName)
       if (!obj || obj.length && obj.length === 0) {
         return fn()
       } else {

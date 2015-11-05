@@ -40,7 +40,7 @@ function compileMustache(nodesTree) {
   var varName;
   var children;
   var compiledChildren;
-  var scopes = (context.scopes || ['props']).slice();
+  var scopes = context.scopes || ['props'];
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text;
@@ -50,22 +50,23 @@ function compileMustache(nodesTree) {
       code = 'scs([' + scopes.join(',') + '], "' + varName + '")';
     }
   } else if (nodesTree.section_node) {
-    varName = nodesTree.section_node.var_name;
-    var newScope = '__S_' + id++ + '_' + varName.replace(/[^a-zA-Z0-9\_]/, '');
-    scopes.unshift(newScope);
-    children = nodesTree.section_node.expr_node.elements;
-    // TODO: keys for children
-    // TODO: wrap text nodes in span
-    if (children && children.length) {
-      compiledChildren = children.map(function (n, index) {
-        return compileAny(n, { varName: context.varName, scopes: scopes }).code;
-      });
-      if (children.length === 1) {
-        code = 'section(' + context.varName + ', "' + varName + '", function(' + newScope + '){ return (' + compiledChildren + ') })';
-      } else {
-        code = 'section(' + context.varName + ', "' + varName + '", function(' + newScope + '){ return [' + compiledChildren + '] })';
+    (function () {
+      varName = nodesTree.section_node.var_name;
+      var newScope = '__S_' + id++ + '_' + varName.replace(/[^a-zA-Z0-9\_]/, '');
+      children = nodesTree.section_node.expr_node.elements;
+      // TODO: keys for children
+      // TODO: wrap text nodes in span
+      if (children && children.length) {
+        compiledChildren = children.map(function (n, index) {
+          return compileAny(n, { varName: context.varName, scopes: [newScope].concat(scopes) }).code;
+        });
+        if (children.length === 1) {
+          code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return (' + compiledChildren + ') })';
+        } else {
+          code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return [' + compiledChildren + '] })';
+        }
       }
-    }
+    })();
   } else if (nodesTree.inverted_section_node) {
     varName = nodesTree.inverted_section_node.var_name;
     children = nodesTree.inverted_section_node.expr_node.elements;
@@ -76,9 +77,9 @@ function compileMustache(nodesTree) {
         return compileAny(n, context).code;
       });
       if (children.length === 1) {
-        code = 'inverted_section(' + context.varName + ', "' + varName + '", function(){ return (' + compiledChildren + ') })';
+        code = 'inverted_section([' + scopes.join(',') + '], "' + varName + '", function(){ return (' + compiledChildren + ') })';
       } else {
-        code = 'inverted_section(' + context.varName + ', "' + varName + '", function(){ return [' + compiledChildren + '] })';
+        code = 'inverted_section([' + scopes.join(',') + '], "' + varName + '", function(){ return [' + compiledChildren + '] })';
       }
     }
   } else if (nodesTree.commented_node) {
@@ -93,15 +94,24 @@ function prerareStyle(styleString) {
 
 function compileAttrsMustache(context, node) {
   var code = 'null';
+  var scopes = (context.scopes || ['props']).slice();
 
   if (node.attr_section_node) {
     var varName = node.attr_section_node.var_name;
     var child = node.attr_section_node.expr_node.text;
-    code = '"' + child + '": !!' + context.varName + '.' + varName;
+    if (scopes.length == 1) {
+      code = '"' + child + '": !!props.' + varName;
+    } else {
+      code = '"' + child + '": !!scs([' + scopes.join(',') + '], "' + varName + '")';
+    }
   } else if (node.attr_inverted_section_node) {
     var varName = node.attr_inverted_section_node.var_name;
     var child = node.attr_inverted_section_node.expr_node.text;
-    code = '"' + child + '": !' + context.varName + '.' + varName;
+    if (scopes.length == 1) {
+      code = '"' + child + '": !props.' + varName;
+    } else {
+      code = '"' + child + '": !scs([' + scopes.join(',') + '], "' + varName + '")';
+    }
   } else if (node.commented_node) {
     code = '// ' + node.commented_node.text_node.text.replace('\n', ' ') + '\n';
   }
@@ -269,7 +279,7 @@ var types = {
 
 module.exports = function (content) {
   this.cacheable();
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n    function includeKey(v, index) {\n      if (v.key === undefined) { v.key = index }\n      return v\n    }\n\n    function scs(scopes, name) { // scopes search\n      var result\n      var namePath = name.split(\'.\')\n\n      for (var i = 0; i < scopes.length; i++) {\n        result = scopes[i]\n        for (var n = 0; n < namePath.length && result != undefined; n++) {\n          result = result[namePath[n]]\n        }\n\n        if (result != undefined && n > 0) { return result }\n      }\n\n      return null\n    }\n\n    function section(props, varName, fn) {\n      var obj = props[varName]\n      if (obj) {\n        if (obj.length !== void 0 && obj.map) {\n          return obj.length ? obj.map(includeKey).map(fn) : null\n        } else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n          return obj(props, fn)\n        } else {\n          return fn(obj)\n        }\n      } else {\n        return null\n      }\n    }\n\n    function inverted_section(props, varName, fn) {\n      var obj = props[varName]\n      if (!obj || obj.length && obj.length === 0) {\n        return fn()\n      } else {\n        return null\n      }\n    }\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), { varName: 'props', scopes: ['props'] }).code + ')\n    }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n    function includeKey(v, index) {\n      if (v.key === undefined) { v.key = index }\n      return v\n    }\n\n    function scs(scopes, name) { // scopes search\n      var result\n      var namePath = name.split(\'.\')\n\n      for (var i = 0; i < scopes.length; i++) {\n        result = scopes[i]\n        for (var n = 0; n < namePath.length && result != undefined; n++) {\n          result = result[namePath[n]]\n        }\n\n        if (result != undefined && n > 0) { return result }\n      }\n\n      return null\n    }\n\n    function section(scopes, varName, fn) {\n      var obj = scs(scopes, varName)\n      if (obj) {\n        if (obj.length !== void 0 && obj.map) {\n          return obj.length ? obj.map(includeKey).map(fn) : null\n        } else {\n          return fn(obj)\n        }\n      } else {\n        return null\n      }\n    }\n\n    function inverted_section(scopes, varName, fn) {\n      var obj = scs(scopes, varName)\n      if (!obj || obj.length && obj.length === 0) {\n        return fn()\n      } else {\n        return null\n      }\n    }\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), { varName: 'props', scopes: ['props'] }).code + ')\n    }\n  ';
 };
 
 module.exports.lowLevel = {

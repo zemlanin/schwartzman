@@ -1221,27 +1221,6 @@
       return address0;
     },
 
-    _read_dumb_expr_node: function() {
-      var address0 = FAILURE, index0 = this._offset;
-      this._cache._dumb_expr_node = this._cache._dumb_expr_node || {};
-      var cached = this._cache._dumb_expr_node[index0];
-      if (cached) {
-        this._offset = cached[1];
-        return cached[0];
-      }
-      var index1 = this._offset;
-      address0 = this._read_dom_node();
-      if (address0 === FAILURE) {
-        this._offset = index1;
-        address0 = this._read_text_node();
-        if (address0 === FAILURE) {
-          this._offset = index1;
-        }
-      }
-      this._cache._dumb_expr_node[index0] = [address0, this._offset];
-      return address0;
-    },
-
     _read_mustache_node: function() {
       var address0 = FAILURE, index0 = this._offset;
       this._cache._mustache_node = this._cache._mustache_node || {};
@@ -2028,7 +2007,7 @@
         var address2 = FAILURE;
         var remaining0 = 0, index2 = this._offset, elements1 = [], address3 = true;
         while (address3 !== FAILURE) {
-          address3 = this._read_dumb_expr_node();
+          address3 = this._read_expr_node();
           if (address3 !== FAILURE) {
             elements1.push(address3);
             --remaining0;
