@@ -10,6 +10,8 @@ var _lodashAssign2 = _interopRequireDefault(_lodashAssign);
 
 var _grammar = require('./grammar');
 
+var id = 0;
+
 function isEscapedMustache(node) {
   return node._type === 'MustacheNode' && node.variable_node && (node.variable_node.text.slice(0, 3) == '{{{' || node.variable_node.text.slice(0, 3) == '{{&');
 }
@@ -38,29 +40,30 @@ function compileMustache(nodesTree) {
   var varName;
   var children;
   var compiledChildren;
-  var innerName;
+  var scopes = (context.scopes || ['props']).slice();
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text;
-    if (varName.indexOf('.') !== -1 && context.innerName && varName.indexOf(context.innerName + '.') === 0) {
-      code = varName;
+    if (scopes.length === 1) {
+      code = 'props.' + varName;
     } else {
-      code = context.varName + '.' + varName;
+      code = 'scs([' + scopes.join(',') + '], "' + varName + '")';
     }
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name;
-    innerName = nodesTree.section_node.inner_name;
+    var newScope = '__S_' + id++ + '_' + varName.replace(/[^a-zA-Z0-9\_]/, '');
+    scopes.unshift(newScope);
     children = nodesTree.section_node.expr_node.elements;
     // TODO: keys for children
     // TODO: wrap text nodes in span
     if (children && children.length) {
       compiledChildren = children.map(function (n, index) {
-        return compileAny(n, { varName: context.varName, innerName: innerName }).code;
+        return compileAny(n, { varName: context.varName, scopes: scopes }).code;
       });
       if (children.length === 1) {
-        code = innerName ? 'section(' + context.varName + ', "' + varName + '", function(' + innerName + '){ return (' + compiledChildren + ') })' : 'section(' + context.varName + ', "' + varName + '", function(){ return (' + compiledChildren + ') })';
+        code = 'section(' + context.varName + ', "' + varName + '", function(' + newScope + '){ return (' + compiledChildren + ') })';
       } else {
-        code = innerName ? 'section(' + context.varName + ', "' + varName + '", function(' + innerName + '){ return [' + compiledChildren + '] })' : 'section(' + context.varName + ', "' + varName + '", function(){ return [' + compiledChildren + '] })';
+        code = 'section(' + context.varName + ', "' + varName + '", function(' + newScope + '){ return [' + compiledChildren + '] })';
       }
     }
   } else if (nodesTree.inverted_section_node) {
@@ -70,7 +73,7 @@ function compileMustache(nodesTree) {
     // TODO: wrap text nodes in span
     if (children && children.length) {
       compiledChildren = children.map(function (n, index) {
-        return compileAny(n, {}).code;
+        return compileAny(n, context).code;
       });
       if (children.length === 1) {
         code = 'inverted_section(' + context.varName + ', "' + varName + '", function(){ return (' + compiledChildren + ') })';
@@ -242,10 +245,10 @@ var actions = {
     var expr_node = _ref42[1];
     var close = _ref42[2];
 
-    if (open.dot_var_name.text != close.dot_var_name.text) {
+    if (open.var_name.text != close.var_name.text) {
       throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
     }
-    return { var_name: open.dot_var_name.text, inner_name: (open.inner_name || {}).text, expr_node: expr_node };
+    return { var_name: open.var_name.text, expr_node: expr_node };
   }
 };
 
@@ -266,7 +269,7 @@ var types = {
 
 module.exports = function (content) {
   this.cacheable();
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n    function includeKey(v, index) {\n      if (v.key === undefined) { v.key = index }\n      return v\n    }\n\n    function section(props, varName, fn) {\n      var obj = props[varName]\n      if (obj) {\n        if (obj.length !== void 0 && obj.map) {\n          return obj.length ? obj.map(includeKey).map(fn) : null\n        } else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n          return obj(props, fn)\n        } else {\n          return fn(obj)\n        }\n      } else {\n        return null\n      }\n    }\n\n    function inverted_section(props, varName, fn) {\n      var obj = props[varName]\n      if (!obj || obj.length && obj.length === 0) {\n        return fn()\n      } else {\n        return null\n      }\n    }\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), { varName: 'props' }).code + ')\n    }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n    function includeKey(v, index) {\n      if (v.key === undefined) { v.key = index }\n      return v\n    }\n\n    function scs(scopes, name) { // scopes search\n      var result\n      var namePath = name.split(\'.\')\n\n      for (var i = 0; i < scopes.length; i++) {\n        result = scopes[i]\n        for (var n = 0; n < namePath.length && result != undefined; n++) {\n          result = result[namePath[n]]\n        }\n\n        if (result != undefined && n > 0) { return result }\n      }\n\n      return null\n    }\n\n    function section(props, varName, fn) {\n      var obj = props[varName]\n      if (obj) {\n        if (obj.length !== void 0 && obj.map) {\n          return obj.length ? obj.map(includeKey).map(fn) : null\n        } else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n          return obj(props, fn)\n        } else {\n          return fn(obj)\n        }\n      } else {\n        return null\n      }\n    }\n\n    function inverted_section(props, varName, fn) {\n      var obj = props[varName]\n      if (!obj || obj.length && obj.length === 0) {\n        return fn()\n      } else {\n        return null\n      }\n    }\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), { varName: 'props', scopes: ['props'] }).code + ')\n    }\n  ';
 };
 
 module.exports.lowLevel = {

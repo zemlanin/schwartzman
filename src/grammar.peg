@@ -5,35 +5,33 @@ open_html_tag       <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whit
 contained_html_tag  <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? "/>" whitespace?
 close_html_tag      <- "</" tag_name ">" whitespace?
 tag_name            <- [a-z]+
-dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / dot_var_name / mustache_node) whitespace? / name:dashed_var_name whitespace? / attr_mustache_node
+dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name / mustache_node) whitespace? / name:dashed_var_name whitespace? / attr_mustache_node
 
 commented_html      <- "<!--" (!"-->" .)* "-->" whitespace?
 
 attr_mustache_node          <- (attr_section_node whitespace?) <MustacheNode> / (attr_inverted_section_node whitespace?) <MustacheNode> / (commented_node whitespace?) <MustacheNode> # TODO: VariableNode | PartialNode | SetDelimiterNode | LambdaNode
-attr_section_node           <- open_section_node dot_var_name? close_section_node %validate_mustache
-attr_inverted_section_node  <- open_inverted_section_node dot_var_name? close_section_node %validate_mustache
+attr_section_node           <- open_section_node var_name? close_section_node %validate_mustache
+attr_inverted_section_node  <- open_inverted_section_node var_name? close_section_node %validate_mustache
 
 expr_node       <- dom_node / mustache_node / text_node
 dumb_expr_node  <- dom_node / text_node
 mustache_node   <- (variable_node whitespace?) <MustacheNode> / (section_node whitespace?) <MustacheNode> / (inverted_section_node whitespace?) <MustacheNode> / (commented_node whitespace?) <MustacheNode> # TODO: PartialNode | SetDelimiterNode | LambdaNode
 
 variable_node               <- regular_variable_node / escaped_variable_node
-regular_variable_node       <- "{{" whitespace? var_name:dot_var_name whitespace? "}}" whitespace?
-escaped_variable_node       <- "{{&" whitespace? var_name:dot_var_name whitespace? "}}" / "{{{" whitespace? var_name:dot_var_name whitespace? "}}}" whitespace?
+regular_variable_node       <- "{{" whitespace? var_name whitespace? "}}" whitespace?
+escaped_variable_node       <- "{{&" whitespace? var_name whitespace? "}}" / "{{{" whitespace? var_name whitespace? "}}}" whitespace?
 section_node                <- open_section_node expr_node* close_section_node %validate_mustache
-open_section_node           <- "{{#" whitespace? var_name:dot_var_name whitespace? inner_name:var_name? whitespace? "}}" whitespace?
-close_section_node          <- "{{/" whitespace? var_name:dot_var_name whitespace? "}}" whitespace?
+open_section_node           <- "{{#" whitespace? var_name whitespace? "}}" whitespace?
+close_section_node          <- "{{/" whitespace? var_name whitespace? "}}" whitespace?
 inverted_section_node       <- open_inverted_section_node dumb_expr_node* close_section_node %validate_mustache
-open_inverted_section_node  <- "{{^" whitespace? var_name:dot_var_name whitespace? "}}" whitespace?
+open_inverted_section_node  <- "{{^" whitespace? var_name whitespace? "}}" whitespace?
 commented_node              <- "{{!" whitespace? text_node whitespace? "}}" whitespace?
 
 text_node         <- (!"{{" (!"}}" [^<>]))+ <TextNode>
 
-var_name          <- (&letter alphanum*)
-dot_var_name      <- (&letter dot_alphanum*)
+var_name          <- (&letter dot_alphanum*)
 dashed_var_name   <- (&letter dash_alphanum*)
 letter            <- [_a-zA-Z]
-alphanum          <- [_a-zA-Z0-9]
 dot_alphanum      <- "."? [_a-zA-Z0-9]+
 dash_alphanum     <- "-"? [_a-zA-Z0-9]+
 

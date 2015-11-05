@@ -1,6 +1,8 @@
 import assign from 'lodash.assign'
 import {parse} from './grammar'
 
+let id = 0
+
 function isEscapedMustache(node) {
   return (
     node._type === 'MustacheNode'
@@ -34,31 +36,31 @@ function compileMustache(nodesTree, context={}) {
   var varName
   var children
   var compiledChildren
-  var innerName
+  var scopes = (context.scopes || ['props']).slice()
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text
-    if (varName.indexOf('.') !== -1 && context.innerName && varName.indexOf(context.innerName + '.') === 0) {
-      code = varName
+    if (scopes.length === 1) {
+      code = `props.${varName}`
     } else {
-      code = context.varName + '.' + varName
+      code = `scs([${scopes.join(',')}], "${varName}")`
     }
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name
-    innerName = nodesTree.section_node.inner_name
+    let newScope = `__S_${id++}_${varName.replace(/[^a-zA-Z0-9\_]/, '')}`
+    scopes.unshift(newScope)
     children = nodesTree.section_node.expr_node.elements
     // TODO: keys for children
     // TODO: wrap text nodes in span
     if (children && children.length) {
-      compiledChildren = children.map((n, index) => compileAny(n, {varName: context.varName, innerName}).code)
+      compiledChildren = children.map((n, index) => compileAny(
+        n,
+        {varName: context.varName, scopes}
+      ).code)
       if (children.length === 1) {
-        code = innerName
-              ? `section(${context.varName}, "${varName}", function(${innerName}){ return (${compiledChildren}) })`
-              : `section(${context.varName}, "${varName}", function(){ return (${compiledChildren}) })`
+        code = `section(${context.varName}, "${varName}", function(${newScope}){ return (${compiledChildren}) })`
       } else {
-        code = innerName
-              ? `section(${context.varName}, "${varName}", function(${innerName}){ return [${compiledChildren}] })`
-              : `section(${context.varName}, "${varName}", function(){ return [${compiledChildren}] })`
+        code = `section(${context.varName}, "${varName}", function(${newScope}){ return [${compiledChildren}] })`
       }
     }
   } else if (nodesTree.inverted_section_node) {
@@ -67,7 +69,7 @@ function compileMustache(nodesTree, context={}) {
     // TODO: keys for children
     // TODO: wrap text nodes in span
     if (children && children.length) {
-      compiledChildren = children.map((n, index) => compileAny(n, {}).code)
+      compiledChildren = children.map((n, index) => compileAny(n, context).code)
       if (children.length === 1) {
         code = `inverted_section(${context.varName}, "${varName}", function(){ return (${compiledChildren}) })`
       } else {
@@ -214,10 +216,10 @@ const actions = {
     return { open, nodes, close }
   },
   validate_mustache: (input, start, end, [open, expr_node, close]) => {
-    if (open.dot_var_name.text != close.dot_var_name.text) {
+    if (open.var_name.text != close.var_name.text) {
       throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
     }
-    return { var_name: open.dot_var_name.text, inner_name: (open.inner_name || {}).text, expr_node }
+    return { var_name: open.var_name.text, expr_node }
   },
 }
 
@@ -247,6 +249,22 @@ module.exports = function(content) {
       return v
     }
 
+    function scs(scopes, name) { // scopes search
+      var result
+      var namePath = name.split('.')
+
+      for (var i = 0; i < scopes.length; i++) {
+        result = scopes[i]
+        for (var n = 0; n < namePath.length && result != undefined; n++) {
+          result = result[namePath[n]]
+        }
+
+        if (result != undefined && n > 0) { return result }
+      }
+
+      return null
+    }
+
     function section(props, varName, fn) {
       var obj = props[varName]
       if (obj) {
@@ -272,7 +290,7 @@ module.exports = function(content) {
     }
 
     module.exports = function (props) {
-      return (${compileDOM(parse(content, {actions, types}), {varName: 'props'}).code})
+      return (${compileDOM(parse(content, {actions, types}), {varName: 'props', scopes: ['props']}).code})
     }
   `
 }

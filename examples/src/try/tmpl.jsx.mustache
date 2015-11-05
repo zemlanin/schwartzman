@@ -7,6 +7,11 @@
   {{#wrapper}}
     -- {{name}} --
   {{/wrapper}}
+  {{#obj}}
+    +++{{i}}+++
+    ---{{k}}---
+    ==={{name}}===
+  {{/obj}}
   <!--<i style="width: 200px"></i>-->
   <i data-x="x" data-y="y"></i>
   <i data-x="x y"></i>
@@ -15,8 +20,8 @@
   <i data-x="test {{name}}"></i>
   <!--<i style="width: 200px"></i>-->
   <ul>
-    {{#people p}}
-      <li>{{p.name}}</li>
+    {{#people}}
+      <li>{{name}}</li>
     {{/people}}
   </ul>
   <span>
