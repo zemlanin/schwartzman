@@ -66,6 +66,7 @@ $ make # make examples
 ```
 
 ## TODO
-* [ ] compatability with React 0.14 (separated ReactDOM module)
-* [ ] DOM events handlers (onClick, onFocus, etc.) `<div {{#onClick}}onClick={{f}}{{/onClick}}`
+* [x] DOM events handlers (onClick, onFocus, etc.) `<div {{#onClick}}onClick={{onClick}}{{/onClick}}`
+* [x] `{{> partial.jsx.mustache }}`
+* [x] compatability with React 0.14 (React.createElement and ReactDOM)
 * [ ] style parsing (`style="margin-top: 20px"` => `"style": {"marginTop": "20px"}`)

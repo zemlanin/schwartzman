@@ -198,7 +198,8 @@ function compileDOM(nodesTree, context={}) {
   attrs = attrsContent ? '{' + attrsContent + '}' : null
   if (compiledChildren && !attrsContent.dangerouslySetInnerHTML) {
     return {
-      code: `React.DOM.${tagName}(
+      code: `React.createElement(
+        "${tagName}",
         ${attrs}
         ${compiledChildren
           .reduce( // remove commas before comments
@@ -210,7 +211,7 @@ function compileDOM(nodesTree, context={}) {
     }
   }
 
-  return {code: `React.DOM.${tagName}(${attrs})\n`}
+  return {code: `React.createElement("${tagName}", ${attrs})\n`}
 }
 
 const actions = {

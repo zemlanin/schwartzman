@@ -208,14 +208,14 @@ function compileDOM(nodesTree) {
   attrs = attrsContent ? '{' + attrsContent + '}' : null;
   if (compiledChildren && !attrsContent.dangerouslySetInnerHTML) {
     return {
-      code: 'React.DOM.' + tagName + '(\n        ' + attrs + '\n        ' + compiledChildren.reduce( // remove commas before comments
+      code: 'React.createElement(\n        "' + tagName + '",\n        ' + attrs + '\n        ' + compiledChildren.reduce( // remove commas before comments
       function (acc, v) {
         return acc.replace(/,$/, '') + (v.code.indexOf('//') === 0 ? '' : ',') + v.code;
       }, ',') + '\n      )\n'
     };
   }
 
-  return { code: 'React.DOM.' + tagName + '(' + attrs + ')\n' };
+  return { code: 'React.createElement("' + tagName + '", ' + attrs + ')\n' };
 }
 
 var actions = {

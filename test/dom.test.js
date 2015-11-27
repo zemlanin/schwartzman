@@ -117,39 +117,39 @@ describe('schwartzman', function() {
     it('compiles single simple node', function () {
       assert.equal(
         parseAndCompile("<div></div>"),
-        'React.DOM.div(null)'
+        'React.createElement("div", null)'
       )
 
       assert.equal(
         parseAndCompile("<textarea/>"),
-        'React.DOM.textarea(null)'
+        'React.createElement("textarea", null)'
       )
 
       assert.equal(
         parseAndCompile("<img src='test.jpg'></img>"),
-        'React.DOM.img({"src":"test.jpg"})'
+        'React.createElement("img", {"src":"test.jpg"})'
       )
 
       assert.equal(
         parseAndCompile("<span hidden=hidden></span>"),
-        'React.DOM.span({"hidden":"hidden"})'
+        'React.createElement("span", {"hidden":"hidden"})'
       )
 
       assert.equal(
         parseAndCompile('<span class="hidden"></span>'),
-        'React.DOM.span({"className":"hidden"})'
+        'React.createElement("span", {"className":"hidden"})'
       )
 
       assert.equal(
         parseAndCompile("<p>lol</p>", {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,"lol")'
+        'React.createElement("p",null,"lol")'
       )
     })
 
     it('compiles single node with multiple attrs', function () {
       assert.equal(
         parseAndCompile("<div data-x='x' data-y='y'></div>"),
-        'React.DOM.div({"data-x":"x","data-y":"y"})'
+        'React.createElement("div", {"data-x":"x","data-y":"y"})'
       )
     })
 
@@ -157,22 +157,22 @@ describe('schwartzman', function() {
     it('compiles nested nodes', function () {
       assert.equal(
         parseAndCompile("<div><img/></div>").replace(/\s+/g, ''),
-        'React.DOM.div(null,React.DOM.img(null))'
+        'React.createElement("div",null,React.createElement("img",null))'
       )
 
       assert.equal(
         parseAndCompile("<div><img/><img/></div>").replace(/\s+/g, ''),
-        'React.DOM.div(null,React.DOM.img(null),React.DOM.img(null))'
+        'React.createElement("div",null,React.createElement("img",null),React.createElement("img",null))'
       )
 
       assert.equal(
         parseAndCompile("<p>lol<img/></p>").replace(/\s+/g, ''),
-        'React.DOM.p(null,"lol",React.DOM.img(null))'
+        'React.createElement("p",null,"lol",React.createElement("img",null))'
       )
 
       assert.equal(
         parseAndCompile("<div><p><img/></p></div>").replace(/\s+/g, ''),
-        'React.DOM.div(null,React.DOM.p(null,React.DOM.img(null)))'
+        'React.createElement("div",null,React.createElement("p",null,React.createElement("img",null)))'
       )
     })
   })
@@ -181,33 +181,33 @@ describe('schwartzman', function() {
     it('compiles variable node as attr value', function () {
       assert.equal(
         parseAndCompile("<p lol={{lol}}></p>", {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p({"lol":props.lol})'
+        'React.createElement("p",{"lol":props.lol})'
       )
     })
 
     it('compiles variable node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p({"lol":"test"+props.lol})' // loses space because of replace inside a test
+        'React.createElement("p",{"lol":"test"+props.lol})' // loses space because of replace inside a test
       )
 
       assert.equal(
         parseAndCompile('<p lol="test {{lol.lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p({"lol":"test"+props.lol.lol})' // loses space because of replace inside a test
+        'React.createElement("p",{"lol":"test"+props.lol.lol})' // loses space because of replace inside a test
       )
     })
 
     it('compiles section node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p({"lol":"test"+section([props],"lol",function(lol){return("fest")})})' // loses space because of replace inside a test
+        'React.createElement("p",{"lol":"test"+section([props],"lol",function(lol){return("fest")})})' // loses space because of replace inside a test
       )
     })
 
     it('compiles nested section nodes', function () {
       assert.equal(
         parseAndCompile('<div>{{#people}}<input {{#checked}}checked{{/checked}}/>{{/people}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.div(null,section([props],"people",function(people){return(React.DOM.input({"checked":!!scs([people,props],"checked")}))}))'
+        'React.createElement("div",null,section([props],"people",function(people){return(React.createElement("input",{"checked":!!scs([people,props],"checked")}))}))'
       )
     })
   })
@@ -216,56 +216,57 @@ describe('schwartzman', function() {
     it('compiles variable node', function () {
       assert.equal(
         parseAndCompile("<p>{{lol}}</p>", {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,props.lol)'
+        'React.createElement("p",null,props.lol)'
       )
     })
 
     it('compiles section node with text inside', function () {
       assert.equal(
         parseAndCompile('<p>{{#people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,section([props],"people",function(people){return("x")}))'
+        'React.createElement("p",null,section([props],"people",function(people){return("x")}))'
       )
     })
 
     it('compiles section node with mustache inside', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{name}},{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.span(null,section([props],"people",function(people){return[scs([people,props],"name"),","]}))'
+        'React.createElement("span",null,section([props],"people",function(people){return[scs([people,props],"name"),","]}))'
       )
     })
 
     it('compiles section node with dom inside', function () {
       assert.equal(
         parseAndCompile('<ul>{{#people}}<li>{{name}}</li>{{/people}}</ul>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.ul(null,section([props],"people",function(people){return(React.DOM.li(null,scs([people,props],"name")))}))'
+        'React.createElement("ul",null,section([props],"people",function(people){return(React.createElement("li",null,scs([people,props],"name")))}))'
       )
     })
 
     it('compiles inverted section node with text inside', function () {
       assert.equal(
         parseAndCompile('<p>{{^people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,inverted_section([props],"people",function(){return("x")}))'
+        'React.createElement("p",null,inverted_section([props],"people",function(){return("x")}))'
       )
     })
 
     it('compiles nested section nodes', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.span(null,section([props],"people",function(people){return(section([people,props],"phone",function(phone){return(scs([phone,people,props],"local"))}))}))'
+        'React.createElement("span",null,section([props],"people",function(people){return(section([people,props],"phone",function(phone){return(scs([phone,people,props],"local"))}))}))'
       )
     })
 
     it('compiles nested inverted section nodes', function () {
       assert.equal(
         parseAndCompile('<span>{{^people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.span(null,inverted_section([props],"people",function(){return(section([props],"phone",function(phone){return(scs([phone,props],"local"))}))}))'
+        'React.createElement("span",null,inverted_section([props],"people",function(){return(section([props],"phone",function(phone){return(scs([phone,props],"local"))}))}))'
       )
     })
 
     it('compiles comment node', function () {
       assert.equal(
         parseAndCompile('<p>lol{{! comment }}</p>', {varName: 'props'}).replace(/ +/g, '').replace(/\n\n+/g, '\n'),
-        'React.DOM.p(\n'+
+        'React.createElement(\n'+
+        '"p",\n'+
         'null\n'+
         ',"lol"//comment\n'+
         ')'
@@ -275,24 +276,24 @@ describe('schwartzman', function() {
     it('compiles escaped node', function () {
       assert.equal(
         parseAndCompile('<p>{{{ amp }}}</p>', {varName: 'props'}).replace(/ +/g, ''),
-        'React.DOM.p({"dangerouslySetInnerHTML":{"__html":props.amp}})'
+        'React.createElement("p",{"dangerouslySetInnerHTML":{"__html":props.amp}})'
       )
 
       assert.equal(
         parseAndCompile('<p>{{& amp }}</p>', {varName: 'props'}).replace(/ +/g, ''),
-        'React.DOM.p({"dangerouslySetInnerHTML":{"__html":props.amp}})'
+        'React.createElement("p",{"dangerouslySetInnerHTML":{"__html":props.amp}})'
       )
     })
 
     it('compiles partial node', function () {
       assert.equal(
         parseAndCompile('<div>{{> amp.jsx.mustache }}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.div(null,require("amp.jsx.mustache")(props))'
+        'React.createElement("div",null,require("amp.jsx.mustache")(props))'
       )
 
       assert.equal(
         parseAndCompile('<div>{{#obj}}{{> amp.jsx.mustache }}{{/obj}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.div(null,section([props],"obj",function(obj){return(require("amp.jsx.mustache")(obj))}))'
+        'React.createElement("div",null,section([props],"obj",function(obj){return(require("amp.jsx.mustache")(obj))}))'
       )
     })
   })

@@ -1,4 +1,5 @@
 import React from 'react'
+import ReactDOM from 'react-dom/server'
 import tmpl from './tmpl.jsx.mustache'
 
 var Component = React.createClass({
@@ -19,5 +20,5 @@ var element = React.createElement(Component, {
   obj: {i: 42},
 })
 
-console.log(React.renderToStaticMarkup(element), '\n\n')
-console.log(React.renderToString(element))
+console.log(ReactDOM.renderToStaticMarkup(element), '\n\n')
+console.log(ReactDOM.renderToString(element))
