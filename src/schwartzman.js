@@ -1,4 +1,3 @@
-import assign from 'lodash.assign'
 import {parse} from './grammar'
 
 let id = 0
