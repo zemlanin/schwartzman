@@ -47,14 +47,16 @@ function compileMustache(nodesTree, context={}) {
     }
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name
-    let newScope = `__S_${id++}_${varName.replace(/[^a-zA-Z0-9\_]/, '')}`
+    const newScope = context.__plainScopeNames
+                    ? varName.replace(/[^a-zA-Z0-9\_]/, '')
+                    : `__S_${id++}_${varName.replace(/[^a-zA-Z0-9\_]/, '')}`
     children = nodesTree.section_node.expr_node.elements
     // TODO: keys for children
     // TODO: wrap text nodes in span
     if (children && children.length) {
       compiledChildren = children.map((n, index) => compileAny(
         n,
-        {varName: context.varName, scopes: [newScope].concat(scopes)}
+        {varName: context.varName, scopes: [newScope].concat(scopes), __plainScopeNames: context.__plainScopeNames}
       ).code)
       if (children.length === 1) {
         code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildren}) })`

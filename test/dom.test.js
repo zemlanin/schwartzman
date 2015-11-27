@@ -8,6 +8,10 @@ function parse(tmpl) {
 }
 
 function parseAndCompile(tmpl, v) {
+  v = v || {}
+  if (v.__plainScopeNames == undefined) {
+    v.__plainScopeNames = true
+  }
   return LL.compileDOM(parse(tmpl), v).code.replace(/\s*$/, '')
 }
 
@@ -173,7 +177,7 @@ describe('schwartzman', function() {
     })
   })
 
-  describe('compileMustache: attrs', function () {
+  describe('compileMustache[attrs]', function () {
     it('compiles variable node as attr value', function () {
       assert.equal(
         parseAndCompile("<p lol={{lol}}></p>", {varName: 'props'}).replace(/\s+/g, ''),
@@ -196,19 +200,19 @@ describe('schwartzman', function() {
     it('compiles section node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p({"lol":"test"+section([props],"lol",function(__S_0_lol){return("fest")})})' // loses space because of replace inside a test
+        'React.DOM.p({"lol":"test"+section([props],"lol",function(lol){return("fest")})})' // loses space because of replace inside a test
       )
     })
 
     it('compiles nested section nodes', function () {
       assert.equal(
         parseAndCompile('<div>{{#people}}<input {{#checked}}checked{{/checked}}/>{{/people}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.div(null,section([props],"people",function(__S_1_people){return(React.DOM.input({"checked":!!scs([__S_1_people,props],"checked")}))}))'
+        'React.DOM.div(null,section([props],"people",function(people){return(React.DOM.input({"checked":!!scs([people,props],"checked")}))}))'
       )
     })
   })
 
-  describe('compileMustache: children', function () {
+  describe('compileMustache[children]', function () {
     it('compiles variable node', function () {
       assert.equal(
         parseAndCompile("<p>{{lol}}</p>", {varName: 'props'}).replace(/\s+/g, ''),
@@ -219,21 +223,21 @@ describe('schwartzman', function() {
     it('compiles section node with text inside', function () {
       assert.equal(
         parseAndCompile('<p>{{#people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.p(null,section([props],"people",function(__S_2_people){return("x")}))'
+        'React.DOM.p(null,section([props],"people",function(people){return("x")}))'
       )
     })
 
     it('compiles section node with mustache inside', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{name}},{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.span(null,section([props],"people",function(__S_3_people){return[scs([__S_3_people,props],"name"),","]}))'
+        'React.DOM.span(null,section([props],"people",function(people){return[scs([people,props],"name"),","]}))'
       )
     })
 
     it('compiles section node with dom inside', function () {
       assert.equal(
         parseAndCompile('<ul>{{#people}}<li>{{name}}</li>{{/people}}</ul>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.ul(null,section([props],"people",function(__S_4_people){return(React.DOM.li(null,scs([__S_4_people,props],"name")))}))'
+        'React.DOM.ul(null,section([props],"people",function(people){return(React.DOM.li(null,scs([people,props],"name")))}))'
       )
     })
 
@@ -247,14 +251,14 @@ describe('schwartzman', function() {
     it('compiles nested section nodes', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.span(null,section([props],"people",function(__S_5_people){return(section([__S_5_people,props],"phone",function(__S_6_phone){return(scs([__S_6_phone,__S_5_people,props],"local"))}))}))'
+        'React.DOM.span(null,section([props],"people",function(people){return(section([people,props],"phone",function(phone){return(scs([phone,people,props],"local"))}))}))'
       )
     })
 
     it('compiles nested inverted section nodes', function () {
       assert.equal(
         parseAndCompile('<span>{{^people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.span(null,inverted_section([props],"people",function(){return(section([props],"phone",function(__S_7_phone){return(scs([__S_7_phone,props],"local"))}))}))'
+        'React.DOM.span(null,inverted_section([props],"people",function(){return(section([props],"phone",function(phone){return(scs([phone,props],"local"))}))}))'
       )
     })
 
@@ -288,8 +292,38 @@ describe('schwartzman', function() {
 
       assert.equal(
         parseAndCompile('<div>{{#obj}}{{> amp.jsx.mustache }}{{/obj}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.DOM.div(null,section([props],"obj",function(__S_8_obj){return(require("amp.jsx.mustache")(__S_8_obj))}))'
+        'React.DOM.div(null,section([props],"obj",function(obj){return(require("amp.jsx.mustache")(obj))}))'
       )
+    })
+  })
+
+  describe("internals", function () {
+    it("prefixes scopes", function () {
+      var compiled = parseAndCompile(
+        '<div>{{#x}}{{#y}}{{z}}{{/y}}{{/x}}</div>',
+        {varName: 'props', __plainScopeNames: false}
+      );
+
+      assert.equal(
+        compiled.match(/function\(__S_\d+_[a-z0-9_]\)/g).length,
+        2
+      )
+
+      assert.equal(
+        compiled.search(/function\(__S_\d+_x\)/g) > -1,
+        true
+      )
+
+      assert.equal(
+        compiled.search(/function\(__S_\d+_y\)/g) > -1,
+        true
+      )
+
+      assert.equal(
+        compiled.search(/function\(__S_\d+_[^xy]\)/g) > -1,
+        false
+      )
+
     })
   })
 })

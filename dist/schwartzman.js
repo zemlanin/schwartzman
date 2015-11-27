@@ -52,13 +52,13 @@ function compileMustache(nodesTree) {
   } else if (nodesTree.section_node) {
     (function () {
       varName = nodesTree.section_node.var_name;
-      var newScope = '__S_' + id++ + '_' + varName.replace(/[^a-zA-Z0-9\_]/, '');
+      var newScope = context.__plainScopeNames ? varName.replace(/[^a-zA-Z0-9\_]/, '') : '__S_' + id++ + '_' + varName.replace(/[^a-zA-Z0-9\_]/, '');
       children = nodesTree.section_node.expr_node.elements;
       // TODO: keys for children
       // TODO: wrap text nodes in span
       if (children && children.length) {
         compiledChildren = children.map(function (n, index) {
-          return compileAny(n, { varName: context.varName, scopes: [newScope].concat(scopes) }).code;
+          return compileAny(n, { varName: context.varName, scopes: [newScope].concat(scopes), __plainScopeNames: context.__plainScopeNames }).code;
         });
         if (children.length === 1) {
           code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return (' + compiledChildren + ') })';
