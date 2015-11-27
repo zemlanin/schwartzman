@@ -279,5 +279,17 @@ describe('schwartzman', function() {
         'React.DOM.p({"dangerouslySetInnerHTML":{"__html":props.amp}})'
       )
     })
+
+    it('compiles partial node', function () {
+      assert.equal(
+        parseAndCompile('<div>{{> amp.jsx.mustache }}</div>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.div(null,require("amp.jsx.mustache")(props))'
+      )
+
+      assert.equal(
+        parseAndCompile('<div>{{#obj}}{{> amp.jsx.mustache }}{{/obj}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.DOM.div(null,section([props],"obj",function(__S_8_obj){return(require("amp.jsx.mustache")(__S_8_obj))}))'
+      )
+    })
   })
 })

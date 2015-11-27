@@ -77,6 +77,8 @@ function compileMustache(nodesTree, context={}) {
     }
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n'
+  } else if (nodesTree.partial_node) {
+    code = `require("${nodesTree.partial_node.path_node.text}")(${scopes[0]})`
   }
   return {code, escaped: isEscapedMustache(nodesTree)}
 }
