@@ -17,17 +17,22 @@ compiles to this:
 ```js
 module.exports = function (props) {
   return (
-    React.DOM.div(
-      {},
-      React.DOM.b(
+    React.createElement(
+      "div",
+      null,
+      React.createElement(
+        "b",
         {"className":"x"},
         props.name
       ),
-      React.DOM.i({"data-x":"x"})
+      React.createElement("i", {"data-x":"x"})
     )
   )
 }
 ```
+
+## why?!
+Because "built-in" server-side prerender of react components requires JS VM — JSX allows for pretty complex expressions. On the other hand, almost (?) every language has library for rendering Mustache templates. Plus, Mustache is very simple and basic. So simple, that it's easier to write a Mustache-to-JS compiler than a JSX parser for Python/Perl/PHP/Pascal/P
 
 ## usage
 Add in your webpack.config.js
@@ -62,11 +67,11 @@ module.exports = {
 ## setup
 ```bash
 $ npm i
-$ make # make examples
+$ make # or `make test` or `make examples`
 ```
 
 ## TODO
 * [x] DOM events handlers (onClick, onFocus, etc.) `<div {{#onClick}}onClick={{onClick}}{{/onClick}}`
 * [x] `{{> partial.jsx.mustache }}`
-* [x] compatability with React 0.14 (React.createElement and ReactDOM)
+* [x] compatability with React 0.14 (`React.createElement` and `ReactDOM`)
 * [ ] style parsing (`style="margin-top: 20px"` => `"style": {"marginTop": "20px"}`)
