@@ -54,9 +54,33 @@ describe('schwartzman', function() {
       assert.deepEqual(
         LL.compileAttrs({varName: 'props'}, '', {
           name: {text: 'style'},
-          value: {text: 'width: "200px"'}
+          value: {text: 'width: 200px'}
         }),
-        '"style":"width: \\"200px\\""'
+        '"style":{"width":"200px"}'
+      )
+
+      assert.deepEqual(
+        LL.compileAttrs({varName: 'props'}, '', {
+          name: {text: 'style'},
+          value: {text: 'border-radius: 5px'}
+        }),
+        '"style":{"borderRadius":"5px"}'
+      )
+
+      assert.deepEqual(
+        LL.compileAttrs({varName: 'props'}, '', {
+          name: {text: 'style'},
+          value: {text: 'background-image: url(http://example.com/image.png); color: black'}
+        }),
+        '"style":{"backgroundImage":"url(http://example.com/image.png)","color":"black"}'
+      )
+
+      assert.deepEqual(
+        LL.compileAttrs({varName: 'props'}, '', {
+          name: {text: 'style'},
+          value: {text: 'color: black;'}
+        }),
+        '"style":{"color":"black"}'
       )
     })
   })

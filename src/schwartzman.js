@@ -84,8 +84,30 @@ function compileMustache(nodesTree, context={}) {
   return {code, escaped: isEscapedMustache(nodesTree)}
 }
 
+function dashToUpperCase(match, letter, offset, string) {
+  return letter.toUpperCase()
+}
+
 function prerareStyle(styleString) {
-  return styleString // TODO
+  const attributes = styleString.split(';')
+
+  let result = {}
+  for (let entry of attributes) {
+    const [key, value] = entry.split(/:(.+)/)
+
+    if (!(key && value)) { continue }
+    const formattedKey = key.toLowerCase()
+                            .replace(/^\s+/, '')
+                            .replace(/\s+$/, '')
+                            .replace(/-([a-z])/g, dashToUpperCase)
+                            .replace(/-/g, '')
+    const formattedValue = value.replace(/^\s+/, '')
+                                .replace(/\s+$/, '')
+
+    result[formattedKey] = formattedValue
+  }
+
+  return JSON.stringify(result)
 }
 
 function compileAttrsMustache(context, node) {
@@ -149,7 +171,7 @@ function compileAttrs(context, acc, node) {
       attrKey = 'className'
       break
     case 'style':
-      attrValue = prerareStyle(attrValue)
+      attrValue = prerareStyle(value.text)
       break
     case 'dangerouslySetInnerHTML':
       attrValue = value

@@ -84,8 +84,53 @@ function compileMustache(nodesTree) {
   return { code: code, escaped: isEscapedMustache(nodesTree) };
 }
 
+function dashToUpperCase(match, letter, offset, string) {
+  return letter.toUpperCase();
+}
+
 function prerareStyle(styleString) {
-  return styleString; // TODO
+  var attributes = styleString.split(';');
+
+  var result = {};
+  var _iteratorNormalCompletion = true;
+  var _didIteratorError = false;
+  var _iteratorError = undefined;
+
+  try {
+    for (var _iterator = attributes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+      var entry = _step.value;
+
+      var _entry$split = entry.split(/:(.+)/);
+
+      var _entry$split2 = _slicedToArray(_entry$split, 2);
+
+      var key = _entry$split2[0];
+      var value = _entry$split2[1];
+
+      if (!(key && value)) {
+        continue;
+      }
+      var formattedKey = key.toLowerCase().replace(/^\s+/, '').replace(/\s+$/, '').replace(/-([a-z])/g, dashToUpperCase).replace(/-/g, '');
+      var formattedValue = value.replace(/^\s+/, '').replace(/\s+$/, '');
+
+      result[formattedKey] = formattedValue;
+    }
+  } catch (err) {
+    _didIteratorError = true;
+    _iteratorError = err;
+  } finally {
+    try {
+      if (!_iteratorNormalCompletion && _iterator['return']) {
+        _iterator['return']();
+      }
+    } finally {
+      if (_didIteratorError) {
+        throw _iteratorError;
+      }
+    }
+  }
+
+  return JSON.stringify(result);
 }
 
 function compileAttrsMustache(context, node) {
@@ -153,7 +198,7 @@ function compileAttrs(context, acc, node) {
       attrKey = 'className';
       break;
     case 'style':
-      attrValue = prerareStyle(attrValue);
+      attrValue = prerareStyle(value.text);
       break;
     case 'dangerouslySetInnerHTML':
       attrValue = value;
