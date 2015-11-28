@@ -34,8 +34,12 @@ module.exports = function (props) {
 ## why?!
 Because "built-in" server-side prerender of react components requires JS VM — JSX allows for pretty complex expressions. On the other hand, almost (?) every language has library for rendering Mustache templates. Plus, Mustache is very simple and basic. So simple, that it's easier to write a Mustache-to-JS compiler than a JSX parser for Python/Perl/PHP/Pascal/P
 
-## usage
-Add in your webpack.config.js
+## installation
+```bash
+$ npm install --save-dev schwartzman
+```
+
+And add to your webpack.config.js
 * `{test: /\.jsx\.mustache$/, loader: "schwartzman"}` to `module.loaders`
 * `'.jsx.mustache'` to `resolve.extensions`
 
@@ -64,7 +68,7 @@ module.exports = {
 }
 ```
 
-## setup
+## development
 ```bash
 $ npm i
 $ make # or `make test` or `make examples`
