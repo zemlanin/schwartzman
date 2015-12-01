@@ -236,6 +236,56 @@ function compileDOM(nodesTree, context={}) {
   return {code: `React.createElement("${tagName}", ${attrs})\n`}
 }
 
+function dependencyMapper(name) {
+  switch (name) {
+    case 'react':
+      return `var React = require('react')`
+    case 'scs':  // scopes search
+      return `function scs(scopes, name) {
+        var result
+        var namePath = name.split('.')
+
+        for (var i = 0; i < scopes.length; i++) {
+          result = scopes[i]
+          for (var n = 0; n < namePath.length && result != undefined; n++) {
+            result = result[namePath[n]]
+          }
+
+          if (result != undefined && n > 0) { return result }
+        }
+
+        return null
+      }`
+    case 'section':
+      return `function includeKey(v, index) {
+          if (v.key === undefined) { v.key = index }
+          return v
+        }
+
+        function section(scopes, varName, fn) {
+          var obj = scs(scopes, varName)
+          if (obj) {
+            if (obj.length !== void 0 && obj.map) {
+              return obj.length ? obj.map(includeKey).map(fn) : null
+            } else {
+              return fn(obj)
+            }
+          } else {
+            return null
+          }
+        }`
+    case 'inverted_section':
+      return ` function inverted_section(scopes, varName, fn) {
+        var obj = scs(scopes, varName)
+        if (!obj || obj.length && obj.length === 0) {
+          return fn()
+        } else {
+          return null
+        }
+      }`
+  }
+}
+
 const actions = {
   removeQuotes: (input, start, end, [lq, text, rq]) => text,
   validate: (input, start, end, [open, nodes, close]) => {
@@ -273,57 +323,34 @@ const types = {
 }
 
 module.exports = function(content) {
-  this.cacheable();
+  if (this && this.cacheable) { this.cacheable() }
+
+  const parsedTree = parse(content, {actions, types})
+  let result
+  let dependencies
+
+  switch (parsedTree.elements.length) {
+    case 0:
+      dependencies = []
+      result = 'null'
+      break
+    case 1:
+      dependencies = ['react', 'scs', 'section', 'inverted_section']
+      result = '(' + compileAny(parsedTree.elements[0], {varName: 'props', scopes: ['props']}).code + ')'
+      break
+    default:
+      dependencies = ['react', 'scs', 'section', 'inverted_section']
+      result = '[(' + parsedTree.elements.map(
+        el => compileAny(el, {varName: 'props', scopes: ['props']}).code
+      ).join('),(') + ')]'
+  }
+
   return `
     'use strict'
     // compiled with schwartzman
-    var React = require('react')
-    function includeKey(v, index) {
-      if (v.key === undefined) { v.key = index }
-      return v
-    }
+    ${dependencies.map(dependencyMapper).join('\n')}
 
-    function scs(scopes, name) { // scopes search
-      var result
-      var namePath = name.split('.')
-
-      for (var i = 0; i < scopes.length; i++) {
-        result = scopes[i]
-        for (var n = 0; n < namePath.length && result != undefined; n++) {
-          result = result[namePath[n]]
-        }
-
-        if (result != undefined && n > 0) { return result }
-      }
-
-      return null
-    }
-
-    function section(scopes, varName, fn) {
-      var obj = scs(scopes, varName)
-      if (obj) {
-        if (obj.length !== void 0 && obj.map) {
-          return obj.length ? obj.map(includeKey).map(fn) : null
-        } else {
-          return fn(obj)
-        }
-      } else {
-        return null
-      }
-    }
-
-    function inverted_section(scopes, varName, fn) {
-      var obj = scs(scopes, varName)
-      if (!obj || obj.length && obj.length === 0) {
-        return fn()
-      } else {
-        return null
-      }
-    }
-
-    module.exports = function (props) {
-      return (${compileDOM(parse(content, {actions, types}), {varName: 'props', scopes: ['props']}).code})
-    }
+    module.exports = function (props) { return ${result} }
   `
 }
 

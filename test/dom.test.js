@@ -1,6 +1,7 @@
 'use strict'
 
 var assert = require("assert")
+var schwartzman = require("../dist/schwartzman").bind({cacheble: function () {}})
 var LL = require("../dist/schwartzman").lowLevel
 
 function parse(tmpl) {
@@ -12,7 +13,7 @@ function parseAndCompile(tmpl, v) {
   if (v.__plainScopeNames == undefined) {
     v.__plainScopeNames = true
   }
-  return LL.compileDOM(parse(tmpl), v).code.replace(/\s*$/, '')
+  return LL.compileAny(parse(tmpl).elements[0], v).code.replace(/\s*$/, '')
 }
 
 describe('schwartzman', function() {
@@ -135,6 +136,33 @@ describe('schwartzman', function() {
       assert.doesNotThrow(parse.bind(null, "<p>{{{ ONE }}}</p>"))
       assert.doesNotThrow(parse.bind(null, "<p>{{{ oNe }}}</p>"))
     })
+
+    it('multiple nodes in root', function () {
+      assert.notEqual(
+        schwartzman('').match(/module.exports = function \(props\) { return null }/),
+        null
+      )
+
+      assert.notEqual(
+        schwartzman('{{name}}').match(/module.exports = function \(props\) { return \(props.name\) }/),
+        null
+      )
+
+      assert.notEqual(
+        schwartzman('{{id}}{{name}}').match(/module.exports = function \(props\) { return \[\(props.id\),\(props.name\)\] }/),
+        null
+      )
+
+      assert.notEqual(
+        schwartzman('<img />{{name}}').replace(/\s+/g, '').match(/module.exports=function\(props\){return\[(\(.*\),?)+\]}/),
+        null
+      )
+
+      assert.notEqual(
+        schwartzman('<img /><b />').replace(/\s+/g, '').match(/module.exports=function\(props\){return\[(\(.*\),?)+\]}/),
+        null
+      )
+    })
   })
 
   describe('compileDOM', function () {
@@ -239,12 +267,22 @@ describe('schwartzman', function() {
   describe('compileMustache[children]', function () {
     it('compiles variable node', function () {
       assert.equal(
+        parseAndCompile("{{lol}}", {varName: 'props'}).replace(/\s+/g, ''),
+        'props.lol'
+      )
+
+      assert.equal(
         parseAndCompile("<p>{{lol}}</p>", {varName: 'props'}).replace(/\s+/g, ''),
         'React.createElement("p",null,props.lol)'
       )
     })
 
     it('compiles section node with text inside', function () {
+      assert.equal(
+        parseAndCompile('{{#people}}x{{/people}}', {varName: 'props'}).replace(/\s+/g, ''),
+        'section([props],"people",function(people){return("x")})'
+      )
+
       assert.equal(
         parseAndCompile('<p>{{#people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
         'React.createElement("p",null,section([props],"people",function(people){return("x")}))'

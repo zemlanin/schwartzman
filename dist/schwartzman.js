@@ -263,6 +263,20 @@ function compileDOM(nodesTree) {
   return { code: 'React.createElement("' + tagName + '", ' + attrs + ')\n' };
 }
 
+function dependencyMapper(name) {
+  switch (name) {
+    case 'react':
+      return 'var React = require(\'react\')';
+    case 'scs':
+      // scopes search
+      return 'function scs(scopes, name) {\n        var result\n        var namePath = name.split(\'.\')\n\n        for (var i = 0; i < scopes.length; i++) {\n          result = scopes[i]\n          for (var n = 0; n < namePath.length && result != undefined; n++) {\n            result = result[namePath[n]]\n          }\n\n          if (result != undefined && n > 0) { return result }\n        }\n\n        return null\n      }';
+    case 'section':
+      return 'function includeKey(v, index) {\n          if (v.key === undefined) { v.key = index }\n          return v\n        }\n\n        function section(scopes, varName, fn) {\n          var obj = scs(scopes, varName)\n          if (obj) {\n            if (obj.length !== void 0 && obj.map) {\n              return obj.length ? obj.map(includeKey).map(fn) : null\n            } else {\n              return fn(obj)\n            }\n          } else {\n            return null\n          }\n        }';
+    case 'inverted_section':
+      return ' function inverted_section(scopes, varName, fn) {\n        var obj = scs(scopes, varName)\n        if (!obj || obj.length && obj.length === 0) {\n          return fn()\n        } else {\n          return null\n        }\n      }';
+  }
+}
+
 var actions = {
   removeQuotes: function removeQuotes(input, start, end, _ref) {
     var _ref2 = _slicedToArray(_ref, 3);
@@ -319,8 +333,31 @@ var types = {
 };
 
 module.exports = function (content) {
-  this.cacheable();
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    var React = require(\'react\')\n    function includeKey(v, index) {\n      if (v.key === undefined) { v.key = index }\n      return v\n    }\n\n    function scs(scopes, name) { // scopes search\n      var result\n      var namePath = name.split(\'.\')\n\n      for (var i = 0; i < scopes.length; i++) {\n        result = scopes[i]\n        for (var n = 0; n < namePath.length && result != undefined; n++) {\n          result = result[namePath[n]]\n        }\n\n        if (result != undefined && n > 0) { return result }\n      }\n\n      return null\n    }\n\n    function section(scopes, varName, fn) {\n      var obj = scs(scopes, varName)\n      if (obj) {\n        if (obj.length !== void 0 && obj.map) {\n          return obj.length ? obj.map(includeKey).map(fn) : null\n        } else {\n          return fn(obj)\n        }\n      } else {\n        return null\n      }\n    }\n\n    function inverted_section(scopes, varName, fn) {\n      var obj = scs(scopes, varName)\n      if (!obj || obj.length && obj.length === 0) {\n        return fn()\n      } else {\n        return null\n      }\n    }\n\n    module.exports = function (props) {\n      return (' + compileDOM((0, _grammar.parse)(content, { actions: actions, types: types }), { varName: 'props', scopes: ['props'] }).code + ')\n    }\n  ';
+  if (this && this.cacheable) {
+    this.cacheable();
+  }
+
+  var parsedTree = (0, _grammar.parse)(content, { actions: actions, types: types });
+  var result = undefined;
+  var dependencies = undefined;
+
+  switch (parsedTree.elements.length) {
+    case 0:
+      dependencies = [];
+      result = 'null';
+      break;
+    case 1:
+      dependencies = ['react', 'scs', 'section', 'inverted_section'];
+      result = '(' + compileAny(parsedTree.elements[0], { varName: 'props', scopes: ['props'] }).code + ')';
+      break;
+    default:
+      dependencies = ['react', 'scs', 'section', 'inverted_section'];
+      result = '[(' + parsedTree.elements.map(function (el) {
+        return compileAny(el, { varName: 'props', scopes: ['props'] }).code;
+      }).join('),(') + ')]';
+  }
+
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    ' + dependencies.map(dependencyMapper).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n  ';
 };
 
 module.exports.lowLevel = {

@@ -220,6 +220,32 @@
   var FAILURE = {};
 
   var Grammar = {
+    _read_root_node: function() {
+      var address0 = FAILURE, index0 = this._offset;
+      this._cache._root_node = this._cache._root_node || {};
+      var cached = this._cache._root_node[index0];
+      if (cached) {
+        this._offset = cached[1];
+        return cached[0];
+      }
+      var remaining0 = 0, index1 = this._offset, elements0 = [], address1 = true;
+      while (address1 !== FAILURE) {
+        address1 = this._read_expr_node();
+        if (address1 !== FAILURE) {
+          elements0.push(address1);
+          --remaining0;
+        }
+      }
+      if (remaining0 <= 0) {
+        address0 = new TreeNode(this._input.substring(index1, this._offset), index1, elements0);
+        this._offset = this._offset;
+      } else {
+        address0 = FAILURE;
+      }
+      this._cache._root_node[index0] = [address0, this._offset];
+      return address0;
+    },
+
     _read_dom_node: function() {
       var address0 = FAILURE, index0 = this._offset;
       this._cache._dom_node = this._cache._dom_node || {};
@@ -3226,7 +3252,7 @@
   };
 
   Parser.prototype.parse = function() {
-    var tree = this._read_dom_node();
+    var tree = this._read_root_node();
     if (tree !== FAILURE && this._offset === this._inputSize) {
       return tree;
     }
