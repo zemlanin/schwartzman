@@ -14,7 +14,7 @@ var element = React.createElement(Component, {
     {name: 'Alice'},
     {name: 'Bob'},
   ],
-  wrapper: function (props, fn) { return fn(props) },
+  wrapper: function (raw, render) { return render(raw) },
   noEscape: '<i>lol</i>',
   amp: '&amp;',
   obj: {i: 42},

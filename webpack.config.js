@@ -26,6 +26,7 @@ module.exports = {
     root: path.join(PROJECT_DEPS, 'node_modules'),
     modulesDirectories: [
       path.resolve(__dirname, "examples"),
+      path.resolve(__dirname, "dist"),
       "node_modules",
     ],
     extensions: ['.js', '.jsx', '.jsx.mustache', ''],

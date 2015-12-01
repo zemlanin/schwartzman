@@ -252,14 +252,14 @@ describe('schwartzman', function() {
     it('compiles section node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("p",{"lol":"test"+section([props],"lol",function(lol){return("fest")})})' // loses space because of replace inside a test
+        'React.createElement("p",{"lol":"test"+section([props],"lol",function(lol){return("fest")},"fest")})' // loses space because of replace inside a test
       )
     })
 
     it('compiles nested section nodes', function () {
       assert.equal(
         parseAndCompile('<div>{{#people}}<input {{#checked}}checked{{/checked}}/>{{/people}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("div",null,section([props],"people",function(people){return(React.createElement("input",{"checked":!!scs([people,props],"checked")}))}))'
+        'React.createElement("div",null,section([props],"people",function(people){return(React.createElement("input",{"checked":!!scs([people,props],"checked")}))},"<input{{#checked}}checked{{/checked}}/>"))'
       )
     })
   })
@@ -280,26 +280,26 @@ describe('schwartzman', function() {
     it('compiles section node with text inside', function () {
       assert.equal(
         parseAndCompile('{{#people}}x{{/people}}', {varName: 'props'}).replace(/\s+/g, ''),
-        'section([props],"people",function(people){return("x")})'
+        'section([props],"people",function(people){return("x")},"x")'
       )
 
       assert.equal(
         parseAndCompile('<p>{{#people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("p",null,section([props],"people",function(people){return("x")}))'
+        'React.createElement("p",null,section([props],"people",function(people){return("x")},"x"))'
       )
     })
 
     it('compiles section node with mustache inside', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{name}},{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("span",null,section([props],"people",function(people){return[scs([people,props],"name"),","]}))'
+        'React.createElement("span",null,section([props],"people",function(people){return[scs([people,props],"name"),","]},"{{name}},"))'
       )
     })
 
     it('compiles section node with dom inside', function () {
       assert.equal(
         parseAndCompile('<ul>{{#people}}<li>{{name}}</li>{{/people}}</ul>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("ul",null,section([props],"people",function(people){return(React.createElement("li",null,scs([people,props],"name")))}))'
+        'React.createElement("ul",null,section([props],"people",function(people){return(React.createElement("li",null,scs([people,props],"name")))},"<li>{{name}}</li>"))'
       )
     })
 
@@ -313,14 +313,14 @@ describe('schwartzman', function() {
     it('compiles nested section nodes', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("span",null,section([props],"people",function(people){return(section([people,props],"phone",function(phone){return(scs([phone,people,props],"local"))}))}))'
+        'React.createElement("span",null,section([props],"people",function(people){return(section([people,props],"phone",function(phone){return(scs([phone,people,props],"local"))},"{{local}}"))},"{{#phone}}{{local}}{{/phone}}"))'
       )
     })
 
     it('compiles nested inverted section nodes', function () {
       assert.equal(
         parseAndCompile('<span>{{^people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("span",null,inverted_section([props],"people",function(){return(section([props],"phone",function(phone){return(scs([phone,props],"local"))}))}))'
+        'React.createElement("span",null,inverted_section([props],"people",function(){return(section([props],"phone",function(phone){return(scs([phone,props],"local"))},"{{local}}"))}))'
       )
     })
 
@@ -355,7 +355,7 @@ describe('schwartzman', function() {
 
       assert.equal(
         parseAndCompile('<div>{{#obj}}{{> amp.jsx.mustache }}{{/obj}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("div",null,section([props],"obj",function(obj){return(require("amp.jsx.mustache")(obj))}))'
+        'React.createElement("div",null,section([props],"obj",function(obj){return(require("amp.jsx.mustache")(obj))},"{{>amp.jsx.mustache}}"))'
       )
     })
   })

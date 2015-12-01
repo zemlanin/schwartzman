@@ -58,9 +58,9 @@ function compileMustache(nodesTree, context={}) {
         {varName: context.varName, scopes: [newScope].concat(scopes), __plainScopeNames: context.__plainScopeNames}
       ).code)
       if (children.length === 1) {
-        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildren}) })`
+        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildren}) }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       } else {
-        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}] })`
+        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}] }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       }
     }
   } else if (nodesTree.inverted_section_node) {
@@ -92,8 +92,8 @@ function prerareStyle(styleString) {
   const attributes = styleString.split(';')
 
   let result = {}
-  for (let entry of attributes) {
-    const [key, value] = entry.split(/:(.+)/)
+  for (let i = 0; i < attributes.length; i++) {
+    const [key, value] = attributes[i].split(/:(.+)/)
 
     if (!(key && value)) { continue }
     const formattedKey = key.toLowerCase()
@@ -236,6 +236,8 @@ function compileDOM(nodesTree, context={}) {
   return {code: `React.createElement("${tagName}", ${attrs})\n`}
 }
 
+const ENABLE_LAMBDAS = false
+
 function dependencyMapper(name) {
   switch (name) {
     case 'react':
@@ -262,11 +264,30 @@ function dependencyMapper(name) {
           return v
         }
 
-        function section(scopes, varName, fn) {
+      ${ENABLE_LAMBDAS ?
+        `function render(scopes, varName, raw) {
+          var ll = require('schwartzman').lowLevel
+          var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})
+
+          var props = scopes[0]
+
+          if (parsed.elements.length == 1) {
+            return eval(ll.compileAny(parsed.elements[0], {varName: varName, scopes: [varName]}).code)
+          } else {
+            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: varName, scopes: [varName]}).code)})
+          }
+        }` : ''
+      }
+
+        function section(scopes, varName, fn, raw) {
           var obj = scs(scopes, varName)
           if (obj) {
             if (obj.length !== void 0 && obj.map) {
               return obj.length ? obj.map(includeKey).map(fn) : null
+      ${ENABLE_LAMBDAS ?
+           `} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {
+              return obj(raw, render.bind(null, scopes, varName))` : ''
+      }
             } else {
               return fn(obj)
             }
@@ -275,7 +296,7 @@ function dependencyMapper(name) {
           }
         }`
     case 'inverted_section':
-      return ` function inverted_section(scopes, varName, fn) {
+      return `function inverted_section(scopes, varName, fn) {
         var obj = scs(scopes, varName)
         if (!obj || obj.length && obj.length === 0) {
           return fn()

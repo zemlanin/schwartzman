@@ -55,9 +55,9 @@ function compileMustache(nodesTree) {
           return compileAny(n, { varName: context.varName, scopes: [newScope].concat(scopes), __plainScopeNames: context.__plainScopeNames }).code;
         });
         if (children.length === 1) {
-          code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return (' + compiledChildren + ') })';
+          code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return (' + compiledChildren + ') }, ' + JSON.stringify(nodesTree.section_node.expr_node.text) + ')';
         } else {
-          code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return [' + compiledChildren + '] })';
+          code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return [' + compiledChildren + '] }, ' + JSON.stringify(nodesTree.section_node.expr_node.text) + ')';
         }
       }
     })();
@@ -92,42 +92,21 @@ function prerareStyle(styleString) {
   var attributes = styleString.split(';');
 
   var result = {};
-  var _iteratorNormalCompletion = true;
-  var _didIteratorError = false;
-  var _iteratorError = undefined;
+  for (var i = 0; i < attributes.length; i++) {
+    var _attributes$i$split = attributes[i].split(/:(.+)/);
 
-  try {
-    for (var _iterator = attributes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-      var entry = _step.value;
+    var _attributes$i$split2 = _slicedToArray(_attributes$i$split, 2);
 
-      var _entry$split = entry.split(/:(.+)/);
+    var key = _attributes$i$split2[0];
+    var value = _attributes$i$split2[1];
 
-      var _entry$split2 = _slicedToArray(_entry$split, 2);
-
-      var key = _entry$split2[0];
-      var value = _entry$split2[1];
-
-      if (!(key && value)) {
-        continue;
-      }
-      var formattedKey = key.toLowerCase().replace(/^\s+/, '').replace(/\s+$/, '').replace(/-([a-z])/g, dashToUpperCase).replace(/-/g, '');
-      var formattedValue = value.replace(/^\s+/, '').replace(/\s+$/, '');
-
-      result[formattedKey] = formattedValue;
+    if (!(key && value)) {
+      continue;
     }
-  } catch (err) {
-    _didIteratorError = true;
-    _iteratorError = err;
-  } finally {
-    try {
-      if (!_iteratorNormalCompletion && _iterator['return']) {
-        _iterator['return']();
-      }
-    } finally {
-      if (_didIteratorError) {
-        throw _iteratorError;
-      }
-    }
+    var formattedKey = key.toLowerCase().replace(/^\s+/, '').replace(/\s+$/, '').replace(/-([a-z])/g, dashToUpperCase).replace(/-/g, '');
+    var formattedValue = value.replace(/^\s+/, '').replace(/\s+$/, '');
+
+    result[formattedKey] = formattedValue;
   }
 
   return JSON.stringify(result);
@@ -263,6 +242,8 @@ function compileDOM(nodesTree) {
   return { code: 'React.createElement("' + tagName + '", ' + attrs + ')\n' };
 }
 
+var ENABLE_LAMBDAS = false;
+
 function dependencyMapper(name) {
   switch (name) {
     case 'react':
@@ -271,9 +252,9 @@ function dependencyMapper(name) {
       // scopes search
       return 'function scs(scopes, name) {\n        var result\n        var namePath = name.split(\'.\')\n\n        for (var i = 0; i < scopes.length; i++) {\n          result = scopes[i]\n          for (var n = 0; n < namePath.length && result != undefined; n++) {\n            result = result[namePath[n]]\n          }\n\n          if (result != undefined && n > 0) { return result }\n        }\n\n        return null\n      }';
     case 'section':
-      return 'function includeKey(v, index) {\n          if (v.key === undefined) { v.key = index }\n          return v\n        }\n\n        function section(scopes, varName, fn) {\n          var obj = scs(scopes, varName)\n          if (obj) {\n            if (obj.length !== void 0 && obj.map) {\n              return obj.length ? obj.map(includeKey).map(fn) : null\n            } else {\n              return fn(obj)\n            }\n          } else {\n            return null\n          }\n        }';
+      return 'function includeKey(v, index) {\n          if (v.key === undefined) { v.key = index }\n          return v\n        }\n\n      ' + (ENABLE_LAMBDAS ? 'function render(scopes, varName, raw) {\n          var ll = require(\'schwartzman\').lowLevel\n          var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})\n\n          var props = scopes[0]\n\n          if (parsed.elements.length == 1) {\n            return eval(ll.compileAny(parsed.elements[0], {varName: varName, scopes: [varName]}).code)\n          } else {\n            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: varName, scopes: [varName]}).code)})\n          }\n        }' : '') + '\n\n        function section(scopes, varName, fn, raw) {\n          var obj = scs(scopes, varName)\n          if (obj) {\n            if (obj.length !== void 0 && obj.map) {\n              return obj.length ? obj.map(includeKey).map(fn) : null\n      ' + (ENABLE_LAMBDAS ? '} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n              return obj(raw, render.bind(null, scopes, varName))' : '') + '\n            } else {\n              return fn(obj)\n            }\n          } else {\n            return null\n          }\n        }';
     case 'inverted_section':
-      return ' function inverted_section(scopes, varName, fn) {\n        var obj = scs(scopes, varName)\n        if (!obj || obj.length && obj.length === 0) {\n          return fn()\n        } else {\n          return null\n        }\n      }';
+      return 'function inverted_section(scopes, varName, fn) {\n        var obj = scs(scopes, varName)\n        if (!obj || obj.length && obj.length === 0) {\n          return fn()\n        } else {\n          return null\n        }\n      }';
   }
 }
 
