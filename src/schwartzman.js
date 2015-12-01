@@ -272,9 +272,9 @@ function dependencyMapper(name) {
           var props = scopes[0]
 
           if (parsed.elements.length == 1) {
-            return eval(ll.compileAny(parsed.elements[0], {varName: varName, scopes: [varName]}).code)
+            return eval(ll.compileAny(parsed.elements[0], {varName: 'props', scopes: ['props']}).code)
           } else {
-            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: varName, scopes: [varName]}).code)})
+            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: 'props', scopes: ['props']}).code)})
           }
         }` : ''
       }
