@@ -14,7 +14,9 @@ var element = React.createElement(Component, {
     {name: 'Alice'},
     {name: 'Bob'},
   ],
-  wrapper: function (raw, render) { return render(raw) },
+  wrapper: function (raw, render) {
+    return React.createElement("strong", {style: {color: "red"}}, render(raw))
+  },
   noEscape: '<i>lol</i>',
   amp: '&amp;',
   obj: {i: 42},
