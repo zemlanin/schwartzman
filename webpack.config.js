@@ -1,3 +1,4 @@
+var webpack = require("webpack");
 var path = require('path');
 var PROJECT_DEPS = process.env.PROJECT_DEPS || __dirname;
 
@@ -7,7 +8,7 @@ module.exports = {
   },
   output: {
     path: 'examples/',
-    pathinfo: true,
+    pathinfo: false,
     filename: "out/[name].js",
   },
   module: {
@@ -31,4 +32,12 @@ module.exports = {
     ],
     extensions: ['.js', '.jsx', '.jsx.mustache', ''],
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: '"production"',
+      }
+    }),
+    // new webpack.optimize.UglifyJsPlugin({output: {comments: false}}),
+  ],
 }

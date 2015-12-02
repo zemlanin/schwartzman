@@ -236,8 +236,6 @@ function compileDOM(nodesTree, context={}) {
   return {code: `React.createElement("${tagName}", ${attrs})\n`}
 }
 
-const ENABLE_LAMBDAS = false
-
 function dependencyMapper(name) {
   switch (name) {
     case 'react':
@@ -264,7 +262,7 @@ function dependencyMapper(name) {
           return v
         }
 
-      ${ENABLE_LAMBDAS ?
+      ${process.env.ENABLE_LAMBDAS ?
         `function render(scopes, varName, raw) {
           var ll = require('schwartzman').lowLevel
           var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})
@@ -284,7 +282,7 @@ function dependencyMapper(name) {
           if (obj) {
             if (obj.length !== void 0 && obj.map) {
               return obj.length ? obj.map(includeKey).map(fn) : null
-      ${ENABLE_LAMBDAS ?
+      ${process.env.ENABLE_LAMBDAS ?
            `} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {
               return obj(raw, render.bind(null, scopes, varName))` : ''
       }
