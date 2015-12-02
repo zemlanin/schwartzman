@@ -22,6 +22,7 @@ function compileAny(nodesTree, context) {
       return compileMustache(nodesTree, context)
       break;
     case 'TextNode':
+    case 'WhitespaceNode':
       return {code: JSON.stringify(nodesTree.text)}
       break;
     case 'CommentedDOMNode':
@@ -267,7 +268,10 @@ function dependencyMapper(name) {
           var ll = require('schwartzman').lowLevel
           var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})
 
-          var props = scopes[0]
+          var props = {}
+          for (var i = scopes.length - 1; i >= 0; i--) {
+            for (var attr in scopes[i]) { props[attr] = scopes[i][attr] }
+          }
 
           if (parsed.elements.length == 1) {
             return eval(ll.compileAny(parsed.elements[0], {varName: 'props', scopes: ['props']}).code)
@@ -305,12 +309,31 @@ function dependencyMapper(name) {
   }
 }
 
+function strip_whitespace_nodes(nodes) {
+  if (nodes[0] && nodes[0]._type == 'WhitespaceNode') {
+    nodes = nodes.splice(1)
+  }
+
+  if (nodes.length && nodes[nodes.length - 1] && nodes[nodes.length - 1]._type == 'WhitespaceNode') {
+    nodes = nodes.splice(0, nodes.length - 1)
+  }
+
+  return nodes
+}
+
 const actions = {
+  strip_whitespaces: (input, start, end, elements) => {
+    elements = strip_whitespace_nodes(elements)
+
+    return {elements}
+  },
   removeQuotes: (input, start, end, [lq, text, rq]) => text,
   validate: (input, start, end, [open, nodes, close]) => {
     if (open.tag_name.text != close.tag_name.text) {
       throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
     }
+
+    nodes.elements = strip_whitespace_nodes(nodes.elements)
 
     if (nodes.elements.length > 1 && nodes.elements.filter(isEscapedMustache).length) {
       throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
@@ -318,11 +341,14 @@ const actions = {
 
     return { open, nodes, close }
   },
-  validate_mustache: (input, start, end, [open, expr_node, close]) => {
+  validate_mustache: (input, start, end, [open, nodes, close]) => {
     if (open.var_name.text != close.var_name.text) {
       throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)
     }
-    return { var_name: open.var_name.text, expr_node }
+
+    nodes.elements = strip_whitespace_nodes(nodes.elements)
+
+    return { var_name: open.var_name.text, expr_node: nodes }
   },
 }
 
@@ -332,6 +358,9 @@ const types = {
   },
   MustacheNode: {
     _type: 'MustacheNode',
+  },
+  WhitespaceNode: {
+    _type: 'WhitespaceNode',
   },
   TextNode: {
     _type: 'TextNode',
@@ -370,6 +399,7 @@ module.exports = function(content) {
     ${dependencies.map(dependencyMapper).join('\n')}
 
     module.exports = function (props) { return ${result} }
+    module.exports.raw = ${JSON.stringify(content)}
   `
 }
 

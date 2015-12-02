@@ -361,6 +361,23 @@ describe('schwartzman', function() {
   })
 
   describe("internals", function () {
+    it("preserves whitespaces", function () {
+      assert.deepEqual(
+        parse("<div>{{x}} words</div>").elements[0].nodes.elements.map(function (v) {return v.text}),
+        ["{{x}}", " ", "words"]
+      )
+
+      assert.deepEqual(
+        parse("<div>{{x}} </div>").elements[0].nodes.elements.map(function (v) {return v.text}),
+        ["{{x}}"]
+      )
+
+      assert.deepEqual(
+        parse("<div>{{x}} {{y}}</div>").elements[0].nodes.elements.map(function (v) {return v.text}),
+        ["{{x}}", " ", "{{y}}"]
+      )
+    })
+
     it("prefixes scopes", function () {
       var compiled = parseAndCompile(
         '<div>{{#x}}{{#y}}{{z}}{{/y}}{{/x}}</div>',

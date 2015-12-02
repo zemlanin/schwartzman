@@ -1,11 +1,11 @@
 grammar Schwartzman
 
-root_node           <- expr_node*
+root_node           <- expr_node* %strip_whitespaces
 dom_node            <- (open_html_tag expr_node* close_html_tag) %validate <DOMNode> / contained_html_tag <DOMNode> / commented_html <CommentedDOMNode>
-open_html_tag       <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? ">" whitespace?
-contained_html_tag  <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? "/>" whitespace?
-close_html_tag      <- "</" tag_name ">" whitespace?
-tag_name            <- [a-z]+
+open_html_tag       <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? ">"
+contained_html_tag  <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? "/>"
+close_html_tag      <- "</" tag_name ">"
+tag_name            <- [a-z0-9]+
 dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name / mustache_node) whitespace? / name:dashed_var_name whitespace? / attr_mustache_node
 
 commented_html      <- "<!--" (!"-->" .)* "-->" whitespace?
@@ -14,20 +14,21 @@ attr_mustache_node          <- (attr_section_node whitespace?) <MustacheNode> / 
 attr_section_node           <- open_section_node var_name? close_section_node %validate_mustache
 attr_inverted_section_node  <- open_inverted_section_node var_name? close_section_node %validate_mustache
 
-expr_node       <- dom_node / mustache_node / text_node
-mustache_node   <- (variable_node whitespace?) <MustacheNode> / (section_node whitespace?) <MustacheNode> / (inverted_section_node whitespace?) <MustacheNode> / (commented_node whitespace?) <MustacheNode> / (partial_node whitespace?) <MustacheNode> # TODO: SetDelimiterNode | LambdaNode
+expr_node       <- whitespace_node / dom_node / mustache_node / text_node
+mustache_node   <- (variable_node &.?) <MustacheNode> / (section_node &.?) <MustacheNode> / (inverted_section_node &.?) <MustacheNode> / (commented_node &.?) <MustacheNode> / (partial_node &.?) <MustacheNode> # TODO: SetDelimiterNode | LambdaNode
 
 variable_node               <- regular_variable_node / escaped_variable_node
-regular_variable_node       <- "{{" whitespace? var_name whitespace? "}}" whitespace?
-escaped_variable_node       <- "{{&" whitespace? var_name whitespace? "}}" / "{{{" whitespace? var_name whitespace? "}}}" whitespace?
+regular_variable_node       <- "{{" whitespace? var_name whitespace? "}}"
+escaped_variable_node       <- "{{&" whitespace? var_name whitespace? "}}" / "{{{" whitespace? var_name whitespace? "}}}"
 section_node                <- open_section_node expr_node* close_section_node %validate_mustache
-open_section_node           <- "{{#" whitespace? var_name whitespace? "}}" whitespace?
-close_section_node          <- "{{/" whitespace? var_name whitespace? "}}" whitespace?
+open_section_node           <- "{{#" whitespace? var_name whitespace? "}}"
+close_section_node          <- "{{/" whitespace? var_name whitespace? "}}"
 inverted_section_node       <- open_inverted_section_node expr_node* close_section_node %validate_mustache
-open_inverted_section_node  <- "{{^" whitespace? var_name whitespace? "}}" whitespace?
-commented_node              <- "{{!" whitespace? text_node whitespace? "}}" whitespace?
-partial_node                <- "{{>" whitespace? path_node whitespace? "}}" whitespace?
+open_inverted_section_node  <- "{{^" whitespace? var_name whitespace? "}}"
+commented_node              <- "{{!" whitespace? text_node whitespace? "}}"
+partial_node                <- "{{>" whitespace? path_node whitespace? "}}"
 
+whitespace_node   <- [ \s]+ <WhitespaceNode>
 text_node         <- (!"{{" (!"}}" [^<>]))+ <TextNode>
 path_node         <- [_a-zA-Z0-9\\\-\/\.]+
 

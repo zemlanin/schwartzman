@@ -5,6 +5,7 @@ var PROJECT_DEPS = process.env.PROJECT_DEPS || __dirname;
 module.exports = {
   entry: {
     try: "src/try/main.js",
+    demo: "src/demo/main.js",
   },
   output: {
     path: 'examples/',
@@ -33,11 +34,11 @@ module.exports = {
     extensions: ['.js', '.jsx', '.jsx.mustache', ''],
   },
   plugins: [
-    new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: '"production"',
-      }
-    }),
+    // new webpack.DefinePlugin({
+    //   'process.env': {
+    //     NODE_ENV: '"production"',
+    //   }
+    // }),
     // new webpack.optimize.UglifyJsPlugin({output: {comments: false}}),
   ],
 }

@@ -19,6 +19,7 @@ function compileAny(nodesTree, context) {
       return compileMustache(nodesTree, context);
       break;
     case 'TextNode':
+    case 'WhitespaceNode':
       return { code: JSON.stringify(nodesTree.text) };
       break;
     case 'CommentedDOMNode':
@@ -250,13 +251,30 @@ function dependencyMapper(name) {
       // scopes search
       return 'function scs(scopes, name) {\n        var result\n        var namePath = name.split(\'.\')\n\n        for (var i = 0; i < scopes.length; i++) {\n          result = scopes[i]\n          for (var n = 0; n < namePath.length && result != undefined; n++) {\n            result = result[namePath[n]]\n          }\n\n          if (result != undefined && n > 0) { return result }\n        }\n\n        return null\n      }';
     case 'section':
-      return 'function includeKey(v, index) {\n          if (v.key === undefined) { v.key = index }\n          return v\n        }\n\n      ' + (process.env.ENABLE_LAMBDAS ? 'function render(scopes, varName, raw) {\n          var ll = require(\'schwartzman\').lowLevel\n          var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})\n\n          var props = scopes[0]\n\n          if (parsed.elements.length == 1) {\n            return eval(ll.compileAny(parsed.elements[0], {varName: \'props\', scopes: [\'props\']}).code)\n          } else {\n            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: \'props\', scopes: [\'props\']}).code)})\n          }\n        }' : '') + '\n\n        function section(scopes, varName, fn, raw) {\n          var obj = scs(scopes, varName)\n          if (obj) {\n            if (obj.length !== void 0 && obj.map) {\n              return obj.length ? obj.map(includeKey).map(fn) : null\n      ' + (process.env.ENABLE_LAMBDAS ? '} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n              return obj(raw, render.bind(null, scopes, varName))' : '') + '\n            } else {\n              return fn(obj)\n            }\n          } else {\n            return null\n          }\n        }';
+      return 'function includeKey(v, index) {\n          if (v.key === undefined) { v.key = index }\n          return v\n        }\n\n      ' + (process.env.ENABLE_LAMBDAS ? 'function render(scopes, varName, raw) {\n          var ll = require(\'schwartzman\').lowLevel\n          var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})\n\n          var props = {}\n          for (var i = scopes.length - 1; i >= 0; i--) {\n            for (var attr in scopes[i]) { props[attr] = scopes[i][attr] }\n          }\n\n          if (parsed.elements.length == 1) {\n            return eval(ll.compileAny(parsed.elements[0], {varName: \'props\', scopes: [\'props\']}).code)\n          } else {\n            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: \'props\', scopes: [\'props\']}).code)})\n          }\n        }' : '') + '\n\n        function section(scopes, varName, fn, raw) {\n          var obj = scs(scopes, varName)\n          if (obj) {\n            if (obj.length !== void 0 && obj.map) {\n              return obj.length ? obj.map(includeKey).map(fn) : null\n      ' + (process.env.ENABLE_LAMBDAS ? '} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n              return obj(raw, render.bind(null, scopes, varName))' : '') + '\n            } else {\n              return fn(obj)\n            }\n          } else {\n            return null\n          }\n        }';
     case 'inverted_section':
       return 'function inverted_section(scopes, varName, fn) {\n        var obj = scs(scopes, varName)\n        if (!obj || obj.length && obj.length === 0) {\n          return fn()\n        } else {\n          return null\n        }\n      }';
   }
 }
 
+function strip_whitespace_nodes(nodes) {
+  if (nodes[0] && nodes[0]._type == 'WhitespaceNode') {
+    nodes = nodes.splice(1);
+  }
+
+  if (nodes.length && nodes[nodes.length - 1] && nodes[nodes.length - 1]._type == 'WhitespaceNode') {
+    nodes = nodes.splice(0, nodes.length - 1);
+  }
+
+  return nodes;
+}
+
 var actions = {
+  strip_whitespaces: function strip_whitespaces(input, start, end, elements) {
+    elements = strip_whitespace_nodes(elements);
+
+    return { elements: elements };
+  },
   removeQuotes: function removeQuotes(input, start, end, _ref) {
     var _ref2 = _slicedToArray(_ref, 3);
 
@@ -276,6 +294,8 @@ var actions = {
       throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
     }
 
+    nodes.elements = strip_whitespace_nodes(nodes.elements);
+
     if (nodes.elements.length > 1 && nodes.elements.filter(isEscapedMustache).length) {
       throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
     }
@@ -286,13 +306,16 @@ var actions = {
     var _ref42 = _slicedToArray(_ref4, 3);
 
     var open = _ref42[0];
-    var expr_node = _ref42[1];
+    var nodes = _ref42[1];
     var close = _ref42[2];
 
     if (open.var_name.text != close.var_name.text) {
       throw new SyntaxError('miss closed tag: ' + open.text.trim() + ' and ' + close.text.trim());
     }
-    return { var_name: open.var_name.text, expr_node: expr_node };
+
+    nodes.elements = strip_whitespace_nodes(nodes.elements);
+
+    return { var_name: open.var_name.text, expr_node: nodes };
   }
 };
 
@@ -302,6 +325,9 @@ var types = {
   },
   MustacheNode: {
     _type: 'MustacheNode'
+  },
+  WhitespaceNode: {
+    _type: 'WhitespaceNode'
   },
   TextNode: {
     _type: 'TextNode'
@@ -336,7 +362,7 @@ module.exports = function (content) {
       }).join('),(') + ')]';
   }
 
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    ' + dependencies.map(dependencyMapper).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    ' + dependencies.map(dependencyMapper).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n    module.exports.raw = ' + JSON.stringify(content) + '\n  ';
 };
 
 module.exports.lowLevel = {

@@ -1,0 +1,17 @@
+<div>
+  {{#debug}}
+    <h3>
+      {{ images.length }} images
+    </h3>
+  {{/debug}}
+  {{#images}}
+    <div style="display: inline-block; padding: 5px; border: 1px solid gray;">
+      {{#debug}}
+        {{name}}
+        {{#debug}}
+          <div><img src={{src}} /></div>
+        {{/debug}}
+      {{/debug}}
+    </div>
+  {{/images}}
+</div>
