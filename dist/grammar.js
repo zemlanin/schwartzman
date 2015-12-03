@@ -1204,13 +1204,13 @@
         return cached[0];
       }
       var index1 = this._offset;
-      address0 = this._read_whitespace_node();
+      address0 = this._read_dom_node();
       if (address0 === FAILURE) {
         this._offset = index1;
-        address0 = this._read_dom_node();
+        address0 = this._read_mustache_node();
         if (address0 === FAILURE) {
           this._offset = index1;
-          address0 = this._read_mustache_node();
+          address0 = this._read_whitespace_node();
           if (address0 === FAILURE) {
             this._offset = index1;
             address0 = this._read_text_node();

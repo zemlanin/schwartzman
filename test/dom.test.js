@@ -364,7 +364,7 @@ describe('schwartzman', function() {
     it("preserves whitespaces", function () {
       assert.deepEqual(
         parse("<div>{{x}} words</div>").elements[0].nodes.elements.map(function (v) {return v.text}),
-        ["{{x}}", " ", "words"]
+        ["{{x}}", " words"]
       )
 
       assert.deepEqual(

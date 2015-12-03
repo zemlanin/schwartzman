@@ -49,7 +49,7 @@ function render() {
 document.getElementById("rendered").innerHTML = Mustache.render(tmpl.raw, {
   images: generateResponse(),
   debug: true,
-})
+}).replace(/>\s+/g, '>')
 
 document.getElementById("hook").onclick = function (e) { render() }
 

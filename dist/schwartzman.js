@@ -19,8 +19,10 @@ function compileAny(nodesTree, context) {
       return compileMustache(nodesTree, context);
       break;
     case 'TextNode':
-    case 'WhitespaceNode':
       return { code: JSON.stringify(nodesTree.text) };
+      break;
+    case 'WhitespaceNode':
+      return { code: JSON.stringify(nodesTree.text), whitespace: true };
       break;
     case 'CommentedDOMNode':
       return { code: '// ' + nodesTree.elements[1].text.replace('\n', ' ') + '\n' };
@@ -234,8 +236,14 @@ function compileDOM(nodesTree) {
   if (compiledChildren && !attrsContent.dangerouslySetInnerHTML) {
     return {
       code: 'React.createElement(\n        "' + tagName + '",\n        ' + attrs + '\n        ' + compiledChildren.reduce( // remove commas before comments
-      function (acc, v) {
-        return acc.replace(/,$/, '') + (v.code.indexOf('//') === 0 ? '' : ',') + v.code;
+      function (acc, v, index, array) {
+        if (v.whitespace) {
+          return acc;
+        }
+        var isComment = v.code.indexOf('//') === 0;
+        var followedByWhitespace = (array[index + 1] || {}).whitespace && v.code.match(/\S"$/);
+
+        return acc.replace(/,$/, '') + (isComment ? '' : ',') + (followedByWhitespace ? v.code.replace(/"$/, " \"") : v.code);
       }, ',') + '\n      )\n'
     };
   }
@@ -258,6 +266,8 @@ function dependencyMapper(name) {
 }
 
 function strip_whitespace_nodes(nodes) {
+  var result = [];
+
   if (nodes[0] && nodes[0]._type == 'WhitespaceNode') {
     nodes = nodes.splice(1);
   }
@@ -266,7 +276,41 @@ function strip_whitespace_nodes(nodes) {
     nodes = nodes.splice(0, nodes.length - 1);
   }
 
-  return nodes;
+  for (var i = 0; i < nodes.length; i++) {
+    if (nodes[i]._type == 'WhitespaceNode') {
+      if (result.length == 0) {
+        continue;
+      }
+      if (nodes[i + 1] && nodes[i + 1]._type == 'DOMNode') {
+        continue;
+      }
+      if (nodes[i + 1] && nodes[i + 1]._type == 'TextNode') {
+        nodes[i + 1].text = ' ' + nodes[i + 1].text;
+        continue;
+      }
+      switch (result[result.length - 1]._type) {
+        case 'MustacheNode':
+          if (nodes[i + 1] && nodes[i + 1]._type == 'MustacheNode') {
+            nodes[i].text = ' ';
+            result.push(nodes[i]);
+          }
+        case 'TextNode':
+          if (!result[result.length - 1].text.match(/\s$/)) {
+            result[result.length - 1].text = result[result.length - 1].text + ' ';
+          }
+        case 'DOMNode':
+        case 'WhitespaceNode':
+        case 'CommentedDOMNode':
+          continue;
+        default:
+          throw new Error('Undefined behavior for strip_whitespace_nodes: ' + nodes[i]._type);
+      }
+    } else {
+      result.push(nodes[i]);
+    }
+  }
+
+  return result;
 }
 
 var actions = {
