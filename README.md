@@ -1,4 +1,4 @@
-# schwartzman
+# schwartzman [![Build Status](https://travis-ci.org/zemlanin/schwartzman.svg?branch=master)](https://travis-ci.org/zemlanin/schwartzman)
 
 Webpack loader for [Mustache](https://mustache.github.io). Compiles jsx.mustache files to [ReactJS](https://facebook.github.io/react).
 
