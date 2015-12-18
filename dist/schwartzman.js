@@ -4,6 +4,8 @@ var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = 
 
 var _grammar = require('./grammar');
 
+var _loaderUtils = require('loader-utils');
+
 var id = 0;
 
 function isEscapedMustache(node) {
@@ -251,7 +253,7 @@ function compileDOM(nodesTree) {
   return { code: 'React.createElement("' + tagName + '", ' + attrs + ')\n' };
 }
 
-function dependencyMapper(name) {
+function dependencyMapper(lambdas, name) {
   switch (name) {
     case 'react':
       return 'var React = require(\'react\')';
@@ -259,7 +261,7 @@ function dependencyMapper(name) {
       // scopes search
       return 'function scs(scopes, name) {\n        var result\n        var namePath = name.split(\'.\')\n\n        for (var i = 0; i < scopes.length; i++) {\n          result = scopes[i]\n          for (var n = 0; n < namePath.length && result != undefined; n++) {\n            result = result[namePath[n]]\n          }\n\n          if (result != undefined && n > 0) { return result }\n        }\n\n        return null\n      }';
     case 'section':
-      return 'function includeKey(v, index) {\n          if (v.key === undefined) { v.key = index }\n          return v\n        }\n\n      ' + (process.env.ENABLE_LAMBDAS ? 'function render(scopes, varName, raw) {\n          var ll = require(\'schwartzman\').lowLevel\n          var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})\n\n          var props = {}\n          for (var i = scopes.length - 1; i >= 0; i--) {\n            for (var attr in scopes[i]) { props[attr] = scopes[i][attr] }\n          }\n\n          if (parsed.elements.length == 1) {\n            return eval(ll.compileAny(parsed.elements[0], {varName: \'props\', scopes: [\'props\']}).code)\n          } else {\n            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: \'props\', scopes: [\'props\']}).code)})\n          }\n        }' : '') + '\n\n        function section(scopes, varName, fn, raw) {\n          var obj = scs(scopes, varName)\n          if (obj) {\n            if (obj.length !== void 0 && obj.map) {\n              return obj.length ? obj.map(includeKey).map(fn) : null\n      ' + (process.env.ENABLE_LAMBDAS ? '} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n              return obj(raw, render.bind(null, scopes, varName))' : '') + '\n            } else {\n              return fn(obj)\n            }\n          } else {\n            return null\n          }\n        }';
+      return 'function includeKey(v, index) {\n          if (v.key === undefined) { v.key = index }\n          return v\n        }\n\n      ' + (lambdas ? 'function render(scopes, varName, raw) {\n          var ll = require(\'schwartzman\').lowLevel\n          var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})\n\n          var props = {}\n          for (var i = scopes.length - 1; i >= 0; i--) {\n            for (var attr in scopes[i]) { props[attr] = scopes[i][attr] }\n          }\n\n          if (parsed.elements.length == 1) {\n            return eval(ll.compileAny(parsed.elements[0], {varName: \'props\', scopes: [\'props\']}).code)\n          } else {\n            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: \'props\', scopes: [\'props\']}).code)})\n          }\n        }' : '') + '\n\n        function section(scopes, varName, fn, raw) {\n          var obj = scs(scopes, varName)\n          if (obj) {\n            if (obj.length !== void 0 && obj.map) {\n              return obj.length ? obj.map(includeKey).map(fn) : null\n      ' + (lambdas ? '} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n              return obj(raw, render.bind(null, scopes, varName))' : '') + '\n            } else {\n              return fn(obj)\n            }\n          } else {\n            return null\n          }\n        }';
     case 'inverted_section':
       return 'function inverted_section(scopes, varName, fn) {\n        var obj = scs(scopes, varName)\n        if (!obj || obj.length && obj.length === 0) {\n          return fn()\n        } else {\n          return null\n        }\n      }';
   }
@@ -386,6 +388,7 @@ module.exports = function (content) {
     this.cacheable();
   }
 
+  var lambdas = !!(this && (0, _loaderUtils.parseQuery)(this.query).lambdas);
   var parsedTree = (0, _grammar.parse)(content, { actions: actions, types: types });
   var result = undefined;
   var dependencies = undefined;
@@ -406,7 +409,7 @@ module.exports = function (content) {
       }).join('),(') + ')]';
   }
 
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    ' + dependencies.map(dependencyMapper).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n    module.exports.raw = ' + JSON.stringify(content) + '\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    ' + dependencies.map(dependencyMapper.bind(null, lambdas)).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n    module.exports.raw = ' + JSON.stringify(content) + '\n  ';
 };
 
 module.exports.lowLevel = {

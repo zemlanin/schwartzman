@@ -26,5 +26,7 @@
     "react-dom": "^0.14.3",
     "webpack": "^1.12.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "loader-utils": "^0.2.12"
+  }
 }

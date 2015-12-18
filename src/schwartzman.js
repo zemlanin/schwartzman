@@ -1,4 +1,5 @@
 import {parse} from './grammar'
+import {parseQuery} from 'loader-utils'
 
 let id = 0
 
@@ -249,7 +250,7 @@ function compileDOM(nodesTree, context={}) {
   return {code: `React.createElement("${tagName}", ${attrs})\n`}
 }
 
-function dependencyMapper(name) {
+function dependencyMapper(lambdas, name) {
   switch (name) {
     case 'react':
       return `var React = require('react')`
@@ -275,7 +276,7 @@ function dependencyMapper(name) {
           return v
         }
 
-      ${process.env.ENABLE_LAMBDAS ?
+      ${lambdas ?
         `function render(scopes, varName, raw) {
           var ll = require('schwartzman').lowLevel
           var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})
@@ -298,7 +299,7 @@ function dependencyMapper(name) {
           if (obj) {
             if (obj.length !== void 0 && obj.map) {
               return obj.length ? obj.map(includeKey).map(fn) : null
-      ${process.env.ENABLE_LAMBDAS ?
+      ${lambdas ?
            `} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {
               return obj(raw, render.bind(null, scopes, varName))` : ''
       }
@@ -417,6 +418,7 @@ const types = {
 module.exports = function(content) {
   if (this && this.cacheable) { this.cacheable() }
 
+  const lambdas = !!(this && parseQuery(this.query).lambdas)
   const parsedTree = parse(content, {actions, types})
   let result
   let dependencies
@@ -440,7 +442,7 @@ module.exports = function(content) {
   return `
     'use strict'
     // compiled with schwartzman
-    ${dependencies.map(dependencyMapper).join('\n')}
+    ${dependencies.map(dependencyMapper.bind(null, lambdas)).join('\n')}
 
     module.exports = function (props) { return ${result} }
     module.exports.raw = ${JSON.stringify(content)}

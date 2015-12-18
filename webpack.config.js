@@ -14,7 +14,7 @@ module.exports = {
   },
   module: {
     loaders: [
-      {test: /\.jsx\.mustache$/, loader: "schwartzman"},
+      {test: /\.jsx\.mustache$/, loader: "schwartzman", query: {lambdas: !!process.env.ENABLE_LAMBDAS}},
       {test: /\.jsx?$/, exclude: /(node_modules)|(baselib)/, loader: 'babel-loader'}
     ],
   },
