@@ -83,7 +83,7 @@ function compileMustache(nodesTree, context={}) {
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n'
   } else if (nodesTree.partial_node) {
-    code = `require("${nodesTree.partial_node.path_node.text}")(${scopes[0]})`
+    code = `partial_node(require("${nodesTree.partial_node.path_node.text}"), ${scopes[0]})`
   }
   return {code, escaped: isEscapedMustache(nodesTree)}
 }
@@ -319,6 +319,14 @@ function dependencyMapper(lambdas, name) {
           return null
         }
       }`
+    case 'partial_node':
+      return `function partial_node(module, props) {
+        if (!module) { return null }
+
+        if (module.__esModule) { return React.createElement(module.default, props) }
+
+        return React.createElement(module, props)
+      }`
   }
 }
 
@@ -429,11 +437,11 @@ module.exports = function(content) {
       result = 'null'
       break
     case 1:
-      dependencies = ['react', 'scs', 'section', 'inverted_section']
+      dependencies = ['react', 'scs', 'section', 'inverted_section', 'partial_node']
       result = '(' + compileAny(parsedTree.elements[0], {varName: 'props', scopes: ['props']}).code + ')'
       break
     default:
-      dependencies = ['react', 'scs', 'section', 'inverted_section']
+      dependencies = ['react', 'scs', 'section', 'inverted_section', 'partial_node']
       result = '[(' + parsedTree.elements.map(
         el => compileAny(el, {varName: 'props', scopes: ['props']}).code
       ).join('),(') + ')]'

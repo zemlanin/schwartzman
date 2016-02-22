@@ -84,7 +84,7 @@ function compileMustache(nodesTree) {
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n';
   } else if (nodesTree.partial_node) {
-    code = 'require("' + nodesTree.partial_node.path_node.text + '")(' + scopes[0] + ')';
+    code = 'partial_node(require("' + nodesTree.partial_node.path_node.text + '"), ' + scopes[0] + ')';
   }
   return { code: code, escaped: isEscapedMustache(nodesTree) };
 }
@@ -264,6 +264,8 @@ function dependencyMapper(lambdas, name) {
       return 'function includeKey(v, index) {\n          if (v.key === undefined) { v.key = index }\n          return v\n        }\n\n      ' + (lambdas ? 'function render(scopes, varName, raw) {\n          var ll = require(\'schwartzman\').lowLevel\n          var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})\n\n          var props = {}\n          for (var i = scopes.length - 1; i >= 0; i--) {\n            for (var attr in scopes[i]) { props[attr] = scopes[i][attr] }\n          }\n\n          if (parsed.elements.length == 1) {\n            return eval(ll.compileAny(parsed.elements[0], {varName: \'props\', scopes: [\'props\']}).code)\n          } else {\n            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: \'props\', scopes: [\'props\']}).code)})\n          }\n        }' : '') + '\n\n        function section(scopes, varName, fn, raw) {\n          var obj = scs(scopes, varName)\n          if (obj) {\n            if (obj.length !== void 0 && obj.map) {\n              return obj.length ? obj.map(includeKey).map(fn) : null\n      ' + (lambdas ? '} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {\n              return obj(raw, render.bind(null, scopes, varName))' : '') + '\n            } else {\n              return fn(obj)\n            }\n          } else {\n            return null\n          }\n        }';
     case 'inverted_section':
       return 'function inverted_section(scopes, varName, fn) {\n        var obj = scs(scopes, varName)\n        if (!obj || obj.length && obj.length === 0) {\n          return fn()\n        } else {\n          return null\n        }\n      }';
+    case 'partial_node':
+      return 'function partial_node(module, props) {\n        if (!module) { return null }\n\n        if (module.__esModule) { return React.createElement(module.default, props) }\n\n        return React.createElement(module, props)\n      }';
   }
 }
 
@@ -399,11 +401,11 @@ module.exports = function (content) {
       result = 'null';
       break;
     case 1:
-      dependencies = ['react', 'scs', 'section', 'inverted_section'];
+      dependencies = ['react', 'scs', 'section', 'inverted_section', 'partial_node'];
       result = '(' + compileAny(parsedTree.elements[0], { varName: 'props', scopes: ['props'] }).code + ')';
       break;
     default:
-      dependencies = ['react', 'scs', 'section', 'inverted_section'];
+      dependencies = ['react', 'scs', 'section', 'inverted_section', 'partial_node'];
       result = '[(' + parsedTree.elements.map(function (el) {
         return compileAny(el, { varName: 'props', scopes: ['props'] }).code;
       }).join('),(') + ')]';

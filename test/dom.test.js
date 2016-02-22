@@ -350,12 +350,12 @@ describe('schwartzman', function() {
     it('compiles partial node', function () {
       assert.equal(
         parseAndCompile('<div>{{> amp.jsx.mustache }}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("div",null,require("amp.jsx.mustache")(props))'
+        'React.createElement("div",null,partial_node(require("amp.jsx.mustache"),props))'
       )
 
       assert.equal(
         parseAndCompile('<div>{{#obj}}{{> amp.jsx.mustache }}{{/obj}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("div",null,section([props],"obj",function(obj){return(require("amp.jsx.mustache")(obj))},"{{>amp.jsx.mustache}}"))'
+        'React.createElement("div",null,section([props],"obj",function(obj){return(partial_node(require("amp.jsx.mustache"),obj))},"{{>amp.jsx.mustache}}"))'
       )
     })
   })
