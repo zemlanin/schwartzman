@@ -2,34 +2,7 @@
 
 Webpack loader for [Mustache](https://mustache.github.io). Compiles jsx.mustache files to [ReactJS](https://facebook.github.io/react).
 
-For example, this template:
-
-```mustache
-<!-- tmpl.jsx.mustache -->
-<div>
-  <b class=x>{{name}}</b>
-  <i data-x="x"></i>
-</div>
-```
-
-compiles to this:
-
-```js
-module.exports = function (props) {
-  return (
-    React.createElement(
-      "div",
-      null,
-      React.createElement(
-        "b",
-        {"className":"x"},
-        props.name
-      ),
-      React.createElement("i", {"data-x":"x"})
-    )
-  )
-}
-```
+## [in-browser demo](https://schwartzman.anton.codes)
 
 ## why?!
 Because "built-in" server-side prerender of react components requires JS VM — JSX allows for pretty complex expressions. On the other hand, every language has library for rendering Mustache templates<sup>[[citation needed](https://xkcd.com/285/)]</sup>. Plus, Mustache is very simple and basic. So simple, that it's easier to write a Mustache-to-JS compiler than a JSX parser for Python/Perl/PHP/Pascal/P
