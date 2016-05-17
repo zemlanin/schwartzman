@@ -18,4 +18,4 @@ examples: examples/src/*/* dist/schwartzman.js
 
 .PHONY: test
 test: dist/schwartzman.js
-	$(mocha) && make examples
+	NODE_ENV=test $(mocha) && make examples

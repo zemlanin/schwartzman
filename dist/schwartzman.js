@@ -8,6 +8,21 @@ var _loaderUtils = require('loader-utils');
 
 var id = 0;
 
+function createContext(prevContext, key, value) {
+  var newContext = {
+    varName: prevContext.varName,
+    scopes: prevContext.scopes,
+    __plainScopeNames: prevContext.__plainScopeNames,
+    __stringifyChildren: prevContext.__stringifyChildren
+  };
+
+  if (key) {
+    newContext[key] = value;
+  }
+
+  return newContext;
+}
+
 function isEscapedMustache(node) {
   return node._type === 'MustacheNode' && node.variable_node && (node.variable_node.text.slice(0, 3) == '{{{' || node.variable_node.text.slice(0, 3) == '{{&');
 }
@@ -57,10 +72,12 @@ function compileMustache(nodesTree) {
       // TODO: wrap text nodes in span
       if (children && children.length) {
         compiledChildren = children.map(function (n, index) {
-          return compileAny(n, { varName: context.varName, scopes: [newScope].concat(scopes), __plainScopeNames: context.__plainScopeNames }).code;
+          return compileAny(n, createContext(context, 'scopes', [newScope].concat(scopes))).code;
         });
         if (children.length === 1) {
           code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return (' + compiledChildren + ') }, ' + JSON.stringify(nodesTree.section_node.expr_node.text) + ')';
+        } else if (context.__stringifyChildren) {
+          code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return [' + compiledChildren + '].join(\'\') }, ' + JSON.stringify(nodesTree.section_node.expr_node.text) + ')';
         } else {
           code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return [' + compiledChildren + '] }, ' + JSON.stringify(nodesTree.section_node.expr_node.text) + ')';
         }
@@ -162,7 +179,7 @@ function compileAttrs(context, acc, node) {
   if (!value) {
     attrValue = 'true';
   } else if (value._type === 'MustacheNode') {
-    attrValue = compileMustache(value, context).code;
+    attrValue = compileMustache(value, createContext(context, '__stringifyChildren', true)).code;
   } else if (!value.elements && !inner) {
     attrValue = JSON.stringify(value.text);
   } else if (!inner) {
@@ -170,7 +187,7 @@ function compileAttrs(context, acc, node) {
       return v.text;
     }).map(function (v) {
       if (v._type === 'MustacheNode') {
-        return compileMustache(v, context).code;
+        return compileMustache(v, createContext(context, '__stringifyChildren', true)).code;
       } else {
         return JSON.stringify(v.text);
       }
@@ -411,7 +428,7 @@ module.exports = function (content) {
       }).join('),(') + ')]';
   }
 
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    ' + dependencies.map(dependencyMapper.bind(null, lambdas)).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n    module.exports.raw = ' + JSON.stringify(content) + '\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman\n    ' + dependencies.map(dependencyMapper.bind(null, lambdas)).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n    module.exports.raw = ' + JSON.stringify(content) + '\n    if (process.env.NODE_ENV === \'test\') { module.exports }\n  ';
 };
 
 module.exports.lowLevel = {
