@@ -471,7 +471,7 @@ module.exports = function(content) {
 
     module.exports = function (props) { return ${result} }
     module.exports.raw = ${JSON.stringify(content)}
-    if (process.env.NODE_ENV === 'test') { module.exports }
+    if (process && process.env && process.env.NODE_ENV === 'test') { module.exports }
   `
 }
 
