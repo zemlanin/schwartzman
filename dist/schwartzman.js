@@ -6,6 +6,8 @@ var _grammar = require('./grammar');
 
 var _loaderUtils = require('loader-utils');
 
+var _packageJson = require('../package.json');
+
 var id = 0;
 
 function createContext(prevContext, key, value) {
@@ -428,7 +430,7 @@ module.exports = function (content) {
       }).join('),(') + ')]';
   }
 
-  return '\n    \'use strict\'\n    // compiled with schwartzman\n    ' + dependencies.map(dependencyMapper.bind(null, lambdas)).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n    module.exports.raw = ' + JSON.stringify(content) + '\n    if (process.env.NODE_ENV === \'test\') { module.exports }\n  ';
+  return '\n    \'use strict\'\n    // compiled with schwartzman ' + _packageJson.version + '\n    ' + dependencies.map(dependencyMapper.bind(null, lambdas)).join('\n') + '\n\n    module.exports = function (props) { return ' + result + ' }\n    module.exports.raw = ' + JSON.stringify(content) + '\n    if (process && process.env && process.env.NODE_ENV === \'test\') { module.exports }\n  ';
 };
 
 module.exports.lowLevel = {
