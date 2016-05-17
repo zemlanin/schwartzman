@@ -1,6 +1,5 @@
 import {parse} from './grammar'
 import {parseQuery} from 'loader-utils'
-import {version as VERSION} from '../package.json'
 
 let id = 0
 
@@ -467,7 +466,7 @@ module.exports = function(content) {
 
   return `
     'use strict'
-    // compiled with schwartzman ${VERSION}
+    // compiled with schwartzman {{VERSION}}
     ${dependencies.map(dependencyMapper.bind(null, lambdas)).join('\n')}
 
     module.exports = function (props) { return ${result} }

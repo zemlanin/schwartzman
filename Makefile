@@ -3,9 +3,10 @@ babel = $(bin)/babel
 webpack = $(bin)/webpack
 canopy = $(bin)/canopy
 mocha = $(bin)/mocha
+json = $(bin)/json
 
 dist/schwartzman.js: src/schwartzman.js dist/grammar.js
-	$(babel) src/schwartzman.js > $@
+	$(babel) src/schwartzman.js | sed s/{{VERSION}}/`npm ls schwartzman -j -s | json version`/ > $@
 
 dist/grammar.js: src/grammar.peg
 	$(canopy) src/grammar.peg --lang js
