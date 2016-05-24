@@ -252,7 +252,7 @@ describe('schwartzman', function() {
     it('compiles section node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'React.createElement("p",{"lol":"test"+section([props],"lol",function(lol){return("fest")},"fest")})' // loses space because of replace inside a test
+        'React.createElement("p",{"lol":"test"+(section([props],"lol",function(lol){return("fest")},"fest")||\'\')})' // loses space because of replace inside a test
       )
     })
 

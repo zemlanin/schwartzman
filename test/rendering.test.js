@@ -10,11 +10,20 @@ describe('rendering', function () {
     var tmpl = eval(schwartzman(
       '<div class="x {{#suffix}}c_{{suffix}}{{/suffix}}">classes should be equal "x c_x"</div>'
     ))
+    var tmpl2 = eval(schwartzman(
+      '<div class="x {{^suffix}}{{prefix}}_c{{/suffix}}">classes should be equal "x x_c"</div>'
+    ))
 
     assert.equal(
       '<div class="x c_x">classes should be equal &quot;x c_x&quot;</div>',
       ReactDOMServer.renderToStaticMarkup(
         React.createElement(tmpl, {suffix: 'x'})
+      )
+    )
+    assert.equal(
+      '<div class="x x_c">classes should be equal &quot;x x_c&quot;</div>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl2, {prefix: 'x'})
       )
     )
   })
@@ -149,6 +158,50 @@ describe('rendering', function () {
         React.createElement(tmpl, {
           amp: '&amp;',
         })
+      )
+    )
+  })
+
+  it('classnames without nulls', function () {
+    var tmpl = eval(schwartzman(
+      '<span class="x{{^ y }} y{{/ y }}">class should be "x"</span>'
+    ))
+    var tmpl2 = eval(schwartzman(
+      '<span class="x{{# y }} y{{/ y }}">class still should be "x"</span>'
+    ))
+
+    assert.equal(
+      '<span class="x">class should be &quot;x&quot;</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl, {y: true})
+      )
+    )
+    assert.equal(
+      '<span class="x">class still should be &quot;x&quot;</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl2, {y: false})
+      )
+    )
+  })
+
+  it('valueless attributes', function () {
+    var tmpl = eval(schwartzman(
+      '<span {{# y }}hidden{{/ y }}>hidden should be falsey</span>'
+    ))
+    var tmpl2 = eval(schwartzman(
+      '<span {{# y }}hidden{{/ y }}>hidden should be truthy</span>'
+    ))
+
+    assert.equal(
+      '<span>hidden should be falsey</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl, {y: false})
+      )
+    )
+    assert.equal(
+      '<span hidden="">hidden should be truthy</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl2, {y: true})
       )
     )
   })

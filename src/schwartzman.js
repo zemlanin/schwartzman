@@ -83,6 +83,8 @@ function compileMustache(nodesTree, context={}) {
       } else {
         code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}] }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       }
+
+      if (context.__stringifyChildren) { code = `(${code} || '')` }
     }
   } else if (nodesTree.inverted_section_node) {
     varName = nodesTree.inverted_section_node.var_name
@@ -93,9 +95,13 @@ function compileMustache(nodesTree, context={}) {
       compiledChildren = children.map((n, index) => compileAny(n, context).code)
       if (children.length === 1) {
         code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return (${compiledChildren}) })`
+      } else if (context.__stringifyChildren) {
+        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}].join('') })`
       } else {
         code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}] })`
       }
+
+      if (context.__stringifyChildren) { code = `(${code} || '')` }
     }
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n'
@@ -168,6 +174,8 @@ function compileAttrs(context, acc, node) {
   var attrKey = inner ? name : name.text
   var attrValue
 
+  if (attrKey === 'class') { attrKey = 'className' }
+
   if (!value) {
     attrValue = 'true'
   } else if (value._type === 'MustacheNode') {
@@ -188,9 +196,6 @@ function compileAttrs(context, acc, node) {
   }
 
   switch (attrKey) {
-    case 'class':
-      attrKey = 'className'
-      break
     case 'style':
       attrValue = prerareStyle(value.text)
       break

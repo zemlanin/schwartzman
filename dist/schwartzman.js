@@ -81,6 +81,10 @@ function compileMustache(nodesTree) {
         } else {
           code = 'section([' + scopes.join(',') + '], "' + varName + '", function(' + newScope + '){ return [' + compiledChildren + '] }, ' + JSON.stringify(nodesTree.section_node.expr_node.text) + ')';
         }
+
+        if (context.__stringifyChildren) {
+          code = '(' + code + ' || \'\')';
+        }
       }
     })();
   } else if (nodesTree.inverted_section_node) {
@@ -94,8 +98,14 @@ function compileMustache(nodesTree) {
       });
       if (children.length === 1) {
         code = 'inverted_section([' + scopes.join(',') + '], "' + varName + '", function(){ return (' + compiledChildren + ') })';
+      } else if (context.__stringifyChildren) {
+        code = 'inverted_section([' + scopes.join(',') + '], "' + varName + '", function(){ return [' + compiledChildren + '].join(\'\') })';
       } else {
         code = 'inverted_section([' + scopes.join(',') + '], "' + varName + '", function(){ return [' + compiledChildren + '] })';
+      }
+
+      if (context.__stringifyChildren) {
+        code = '(' + code + ' || \'\')';
       }
     }
   } else if (nodesTree.commented_node) {
@@ -176,6 +186,10 @@ function compileAttrs(context, acc, node) {
   var attrKey = inner ? name : name.text;
   var attrValue;
 
+  if (attrKey === 'class') {
+    attrKey = 'className';
+  }
+
   if (!value) {
     attrValue = 'true';
   } else if (value._type === 'MustacheNode') {
@@ -195,9 +209,6 @@ function compileAttrs(context, acc, node) {
   }
 
   switch (attrKey) {
-    case 'class':
-      attrKey = 'className';
-      break;
     case 'style':
       attrValue = prerareStyle(value.text);
       break;
@@ -283,6 +294,8 @@ function dependencyMapper(lambdas, name) {
       return 'function inverted_section(scopes, varName, fn) {\n        var obj = scs(scopes, varName)\n        if (!obj || obj.length && obj.length === 0) {\n          return fn()\n        } else {\n          return null\n        }\n      }';
     case 'partial_node':
       return 'function partial_node(module, props) {\n        if (!module) { return null }\n\n        if (module.__esModule) { return React.createElement(module.default, props) }\n\n        return React.createElement(module, props)\n      }';
+    case 'identity':
+      return 'function identity (value) { return value }';
   }
 }
 
@@ -418,11 +431,11 @@ module.exports = function (content) {
       result = 'null';
       break;
     case 1:
-      dependencies = ['react', 'scs', 'section', 'inverted_section', 'partial_node'];
+      dependencies = ['react', 'identity', 'scs', 'section', 'inverted_section', 'partial_node'];
       result = '(' + compileAny(parsedTree.elements[0], { varName: 'props', scopes: ['props'] }).code + ')';
       break;
     default:
-      dependencies = ['react', 'scs', 'section', 'inverted_section', 'partial_node'];
+      dependencies = ['react', 'identity', 'scs', 'section', 'inverted_section', 'partial_node'];
       result = '[(' + parsedTree.elements.map(function (el) {
         return compileAny(el, { varName: 'props', scopes: ['props'] }).code;
       }).join('),(') + ')]';
