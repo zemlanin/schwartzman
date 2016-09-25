@@ -1,7 +1,7 @@
 'use strict'
 
 var assert = require("assert")
-var schwartzman = require("../dist/schwartzman").bind({cacheble: function () {}})
+var schwartzman = require("../dist/schwartzman").schwartzman.bind({cacheble: function () {}})
 var LL = require("../dist/schwartzman").lowLevel
 
 function parse(tmpl) {

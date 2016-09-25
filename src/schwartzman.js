@@ -445,7 +445,7 @@ const types = {
   },
 }
 
-module.exports = function(content) {
+export function schwartzman (content) {
   if (this && this.cacheable) { this.cacheable() }
 
   const lambdas = !!(this && parseQuery(this.query).lambdas)
@@ -471,7 +471,7 @@ module.exports = function(content) {
 
   return `
     'use strict'
-    // compiled with schwartzman {{VERSION}}
+    // compiled with schwartzman ${VERSION}
     ${dependencies.map(dependencyMapper.bind(null, lambdas)).join('\n')}
 
     module.exports = function (props) { return ${result} }
@@ -480,7 +480,9 @@ module.exports = function(content) {
   `
 }
 
-module.exports.lowLevel = {
+export default schwartzman
+export const VERSION = VERSION
+export const lowLevel = {
   compileAny,
   compileDOM,
   compileMustache,

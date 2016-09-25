@@ -4,41 +4,32 @@ var PROJECT_DEPS = process.env.PROJECT_DEPS || __dirname;
 
 module.exports = {
   entry: {
-    try: "src/try/main.js",
-    demo: "src/demo/main.js",
+    schwartzman: "schwartzman"
   },
   output: {
-    path: 'examples/',
-    pathinfo: false,
-    filename: "out/[name].js",
+    path: 'dist/',
+    filename: "[name].js",
+    library: 'schwartzman',
+    libraryTarget: 'umd',
   },
   module: {
     loaders: [
-      {test: /\.jsx\.mustache$/, loader: "schwartzman", query: {lambdas: !!process.env.ENABLE_LAMBDAS}},
       {test: /\.jsx?$/, exclude: /(node_modules)|(baselib)/, loader: 'babel-loader'}
     ],
   },
-  resolveLoader: {
-    root: path.join(PROJECT_DEPS, 'node_modules'),
-    modulesDirectories: [
-      path.resolve(__dirname, "dist"),
-    ],
-  },
   resolve: {
-    root: path.join(PROJECT_DEPS, 'node_modules'),
+    root: path.join(PROJECT_DEPS, 'src'),
     modulesDirectories: [
-      path.resolve(__dirname, "examples"),
-      path.resolve(__dirname, "dist"),
-      "node_modules",
+      path.resolve(__dirname, "src"),
     ],
-    extensions: ['.js', '.jsx', '.jsx.mustache', ''],
+    extensions: ['.js', ''],
   },
+  externals: [
+    'loader-utils',
+  ],
   plugins: [
-    // new webpack.DefinePlugin({
-    //   'process.env': {
-    //     NODE_ENV: '"production"',
-    //   }
-    // }),
-    // new webpack.optimize.UglifyJsPlugin({output: {comments: false}}),
+    new webpack.DefinePlugin({
+      VERSION: JSON.stringify(process.env.npm_package_version)
+    }),
   ],
 }

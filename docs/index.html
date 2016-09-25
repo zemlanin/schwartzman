@@ -43,13 +43,12 @@
   </div>
 
   <script type="text/javascript">
-    window.module = {}
+    window.exports = {}
     window.process = {env: {NODE_ENV: 'test'}}
     window.require = function (name) {
-      if (name == './grammar') { return window.Schwartzman }
       if (name == 'loader-utils') { return {parseQuery: function () { return {lambdas: true} }} }
       if (name == 'react') { return window.React }
-      if (name == 'schwartzman') { return window.module.exports }
+      if (name == 'schwartzman') { return window.exports.schwartzman }
       if (name == 'separator.jsx') { return function (props) {
         return React.createElement(
           'div',
@@ -61,8 +60,8 @@
   </script>
   <script src="https://fb.me/react-0.14.8.min.js"></script>
   <script src="https://fb.me/react-dom-0.14.8.min.js"></script>
-  <script type="text/javascript" src="https://npmcdn.com/schwartzman@0.7.4/dist/grammar.js"></script>
-  <script type="text/javascript" src="https://npmcdn.com/schwartzman@0.7.4/dist/schwartzman.js"></script>
+  <scriptd type="text/javascript" src="https://npmcdn.com/schwartzman@0.7.5"></script>
+  <script type="text/javascript" src="../dist/schwartzman.js"></script>
   <script type="text/javascript">
     function getParameterByName (name) {
       name = name.replace(/[\[\]]/g, "\\$&")

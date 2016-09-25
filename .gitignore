@@ -1,3 +1,4 @@
 node_modules
 examples/out
 dist
+src/grammar.js
