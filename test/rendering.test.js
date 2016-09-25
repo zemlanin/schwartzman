@@ -101,7 +101,7 @@ describe('rendering', function () {
       <div>
         <ul>
           {{#people}}
-            <li>{{name}}</li>
+            <li key={{name}}>{{name}}</li>
           {{/people}}
         </ul>
         <span>
