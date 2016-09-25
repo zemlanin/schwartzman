@@ -10,6 +10,7 @@ dist/schwartzman.js: src/schwartzman.js dist/grammar.js
 
 dist/grammar.js: src/grammar.peg
 	$(canopy) src/grammar.peg --lang js
+	mkdir -p dist
 	mv src/grammar.js dist
 
 .PHONY: examples
