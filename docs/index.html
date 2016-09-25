@@ -42,13 +42,25 @@
     </div>
   </div>
 
+  <script src="https://fb.me/react-0.14.8.min.js"></script>
+  <script src="https://fb.me/react-dom-0.14.8.min.js"></script>
+  <script type="text/javascript" data-src="https://npmcdn.com/schwartzman"></script>
   <script type="text/javascript">
+    window.getParameterByName = function getParameterByName (name) {
+      name = name.replace(/[\[\]]/g, "\\$&")
+      var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)")
+      var results = regex.exec(window.location.search)
+      if (!results) { return null }
+      if (!results[2]) { return '' }
+      return decodeURIComponent(results[2].replace(/\+/g, " "))
+    }
     window.exports = {}
+    window.module = {}
     window.process = {env: {NODE_ENV: 'test'}}
     window.require = function (name) {
       if (name == 'loader-utils') { return {parseQuery: function () { return {lambdas: true} }} }
       if (name == 'react') { return window.React }
-      if (name == 'schwartzman') { return window.exports.schwartzman }
+      if (name == 'schwartzman') { return window.module.exports }
       if (name == 'separator.jsx') { return function (props) {
         return React.createElement(
           'div',
@@ -57,20 +69,11 @@
         )
       } }
     }
+    var schwartzmanScript = document.querySelector('[data-src$="schwartzman"]')
+    var version = window.getParameterByName('v') || 'latest'
+    schwartzmanScript.src = schwartzmanScript.getAttribute('data-src') + '@' + version
   </script>
-  <script src="https://fb.me/react-0.14.8.min.js"></script>
-  <script src="https://fb.me/react-dom-0.14.8.min.js"></script>
-  <script type="text/javascript" src="https://npmcdn.com/schwartzman@0.7.5"></script>
   <script type="text/javascript">
-    function getParameterByName (name) {
-      name = name.replace(/[\[\]]/g, "\\$&")
-      var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)")
-      var results = regex.exec(window.location.search)
-      if (!results) { return null }
-      if (!results[2]) { return '' }
-      return decodeURIComponent(results[2].replace(/\+/g, " "))
-    }
-
     function compile () {
       var contents, props, template
       var module = {}
@@ -101,17 +104,18 @@
           props: document.getElementById('props').value,
         },
         '',
-        '?tmpl=' + encodeURIComponent(document.getElementById('tmpl').value) + '&props=' + encodeURIComponent(document.getElementById('props').value)
+        '?v=' + (require('schwartzman').VERSION || window.getParameterByName('v') || 'latest') +
+        '&tmpl=' + encodeURIComponent(document.getElementById('tmpl').value) +
+        '&props=' + encodeURIComponent(document.getElementById('props').value)
       )
     }
 
-    document.getElementById('tmpl').value = getParameterByName('tmpl') || document.getElementById('tmpl').value
-    document.getElementById('props').value = getParameterByName('props') || document.getElementById('props').value
+    document.getElementById('tmpl').value = window.getParameterByName('tmpl') || document.getElementById('tmpl').value
+    document.getElementById('props').value = window.getParameterByName('props') || document.getElementById('props').value
 
     document.getElementById('tmpl').oninput = compile
     document.getElementById('props').oninput = compile
-    compile()
+    document.querySelector('[data-src$="schwartzman"]').onload = compile
   </script>
-
 </body>
 </html>
