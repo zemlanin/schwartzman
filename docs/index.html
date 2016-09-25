@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>
+  schwartzman demo
+  </title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css">
+</head>
+<body>
+  <div class="pure-menu pure-menu-horizontal">
+    <li class="pure-menu-item">
+      <a href="https://www.npmjs.com/package/schwartzman" target="_blank" class="pure-menu-link">npm</a>
+    </li>
+    <li class="pure-menu-item">
+      <a href="https://github.com/zemlanin/schwartzman" target="_blank" class="pure-menu-link">github</a>
+    </li>
+    <li class="pure-menu-item">
+      <a href="http://mustache.github.io/mustache.5.html" target="_blank" class="pure-menu-link">mustache syntax</a>
+    </li>
+    <li class="pure-menu-item">
+      <a href="http://bigl.ua" target="_blank" class="pure-menu-link">bigl.ua</a>
+    </li>
+  </div>
+  <div class="pure-g" style="margin: 0 auto">
+    <textarea
+      id="tmpl"
+      style="font-family: monospace; height: 190px"
+      class="pure-u-11-24"
+    ><div style="color: red">hello, {{name}}! {{> separator.jsx}}</div></textarea>
+    <span class="pure-u-1-24"></span>
+    <textarea
+      id="props"
+      style="font-family: monospace; height: 190px"
+      class="pure-u-11-24"
+    >{"name": "Jason", "separator": {text: "-"}}</textarea>
+  </div>
+  <div class="pure-g">
+    <div id="compileError" style="background-color: red; color: white;" class="pure-u-1-1"></div>
+    <div id="renderTarget" class="pure-u-1-1" style="margin: 1em 0"></div>
+    <div style="font-family: monospace; background-color: #f8f8f8; height: 30em; overflow: scroll;" class="pure-u-1-1">
+      <pre id="compiledCode"></pre>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    window.module = {}
+    window.process = {env: {NODE_ENV: 'test'}}
+    window.require = function (name) {
+      if (name == './grammar') { return window.Schwartzman }
+      if (name == 'loader-utils') { return {parseQuery: function () { return {lambdas: true} }} }
+      if (name == 'react') { return window.React }
+      if (name == 'schwartzman') { return window.module.exports }
+      if (name == 'separator.jsx') { return function (props) {
+        return React.createElement(
+          'div',
+          {},
+          (props.separator && props.separator.text || props.separator || props.text || '').repeat(40)
+        )
+      } }
+    }
+  </script>
+  <script src="https://fb.me/react-0.14.8.min.js"></script>
+  <script src="https://fb.me/react-dom-0.14.8.min.js"></script>
+  <script type="text/javascript" src="https://npmcdn.com/schwartzman@0.7.4/dist/grammar.js"></script>
+  <script type="text/javascript" src="https://npmcdn.com/schwartzman@0.7.4/dist/schwartzman.js"></script>
+  <script type="text/javascript">
+    function getParameterByName (name) {
+      name = name.replace(/[\[\]]/g, "\\$&")
+      var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)")
+      var results = regex.exec(window.location.search)
+      if (!results) { return null }
+      if (!results[2]) { return '' }
+      return decodeURIComponent(results[2].replace(/\+/g, " "))
+    }
+
+    function compile () {
+      var contents, props, template
+      var module = {}
+      var prevRender = document.getElementById('renderTarget').innerHTML
+
+      document.getElementById('renderTarget').innerHTML = ''
+
+      try {
+        contents = require('schwartzman')(document.getElementById('tmpl').value)
+        document.getElementById('compiledCode').textContent = contents
+
+        props = eval('(' + document.getElementById('props').value + ')')
+        template = eval(contents)
+        window.ReactDOM.render(
+          React.createElement(template, props),
+          document.getElementById('renderTarget')
+        )
+
+        document.getElementById('compileError').textContent = ''
+      } catch (err) {
+        document.getElementById('renderTarget').innerHTML = prevRender
+        document.getElementById('compileError').textContent = err
+      }
+
+      window.history.replaceState(
+        {
+          tmpl: document.getElementById('tmpl').value,
+          props: document.getElementById('props').value,
+        },
+        '',
+        '?tmpl=' + encodeURIComponent(document.getElementById('tmpl').value) + '&props=' + encodeURIComponent(document.getElementById('props').value)
+      )
+    }
+
+    document.getElementById('tmpl').value = getParameterByName('tmpl') || document.getElementById('tmpl').value
+    document.getElementById('props').value = getParameterByName('props') || document.getElementById('props').value
+
+    document.getElementById('tmpl').oninput = compile
+    document.getElementById('props').oninput = compile
+    compile()
+  </script>
+
+</body>
+</html>
