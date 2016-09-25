@@ -3,7 +3,6 @@ var PROJECT_DEPS = process.env.PROJECT_DEPS || __dirname;
 
 module.exports = {
   entry: {
-    try: "src/try/main.js",
     demo: "src/demo/main.js",
   },
   output: {
@@ -13,7 +12,7 @@ module.exports = {
   },
   module: {
     loaders: [
-      {test: /\.jsx\.mustache$/, loader: "schwartzman", query: {lambdas: !!process.env.ENABLE_LAMBDAS}},
+      {test: /\.jsx\.mustache$/, loader: "schwartzman", query: {lambdas: true}},
       {test: /\.jsx?$/, exclude: /(node_modules)|(baselib)/, loader: 'babel-loader'}
     ],
   },
