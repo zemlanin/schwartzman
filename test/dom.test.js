@@ -1,7 +1,10 @@
 'use strict'
 
 var assert = require("assert")
-var schwartzman = require("../dist/schwartzman").schwartzman.bind({cacheble: function () {}})
+var schwartzman = require("../dist/schwartzman").bind({
+  cacheble: function () {},
+  query: process.env.ENABLE_LAMBDAS ? '?{lambdas: true}' : ''
+})
 var LL = require("../dist/schwartzman").lowLevel
 
 function parse(tmpl) {

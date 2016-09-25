@@ -445,7 +445,7 @@ const types = {
   },
 }
 
-export function schwartzman (content) {
+function schwartzman (content) {
   if (this && this.cacheable) { this.cacheable() }
 
   const lambdas = !!(this && parseQuery(this.query).lambdas)
@@ -480,9 +480,10 @@ export function schwartzman (content) {
   `
 }
 
-export default schwartzman
-export const VERSION = VERSION
-export const lowLevel = {
+module.exports = schwartzman
+module.exports.schwartzman = schwartzman
+module.exports.VERSION = VERSION
+module.exports.lowLevel = {
   compileAny,
   compileDOM,
   compileMustache,

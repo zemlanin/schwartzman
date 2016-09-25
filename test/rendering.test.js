@@ -3,7 +3,10 @@
 var React = require("react")
 var ReactDOMServer = require("react-dom/server")
 var assert = require("assert")
-var schwartzman = require("../dist/schwartzman").schwartzman.bind({cacheble: function () {}})
+var schwartzman = require("../dist/schwartzman").bind({
+  cacheble: function () {},
+  query: process.env.ENABLE_LAMBDAS ? '?{lambdas: true}' : ''
+})
 
 describe('rendering', function () {
   it('classnames without commas', function () {

@@ -12,7 +12,7 @@
     "prepublish": "npm run build",
     "test": "NODE_ENV=test mocha",
     "webpack": "webpack",
-    "examples": "npm run build && webpack -c webpack.examples.config.js"
+    "examples": "npm run build && webpack --config webpack.examples.config.js"
   },
   "author": "Anton Verinov <anton@verinov.com>",
   "license": "MIT",
