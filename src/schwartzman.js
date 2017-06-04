@@ -7,6 +7,7 @@ function createContext (prevContext, key, value) {
   var newContext = {
     varName: prevContext.varName,
     scopes: prevContext.scopes,
+    graphScopes: prevContext.graphScopes,
     __plainScopeNames: prevContext.__plainScopeNames,
     __stringifyChildren: prevContext.__stringifyChildren,
   }
@@ -29,6 +30,18 @@ function isEscapedMustache(node) {
   )
 }
 
+function mergeStructures(acc, v) {
+  if (!acc) {
+    return v
+  }
+
+  for (const k in v) {
+    acc[k] = mergeStructures(acc[k], v[k])
+  }
+
+  return acc
+}
+
 function compileAny(nodesTree, context) {
   switch (nodesTree._type) {
     case 'DOMNode':
@@ -49,12 +62,42 @@ function compileAny(nodesTree, context) {
   }
 }
 
+function getStructureForVar(graphScopes, varName) {
+  if (graphScopes.length === 0) {
+    return varName.split('.').reverse().reduce(
+      (acc, vPart, i, path) => ({['+'+vPart]: acc}),
+      undefined
+    )
+  }
+
+  const baseStructure = varName.split('.').reverse().reduce(
+    (acc, vPart, i, path) => ({[(i + 1 != path.length ? '+' : '?') +vPart]: acc}),
+    undefined
+  )
+
+  return graphScopes.reduce(
+    (acc, v) => {
+      v.split('.').reverse().forEach(vPart => {
+        acc = {
+          ['+'+vPart]: acc
+        }
+      })
+
+      return Object.assign(acc, baseStructure)
+    },
+    baseStructure
+  )
+}
+
 function compileMustache(nodesTree, context={}) {
   var code = 'null'
+  var structure
   var varName
   var children
   var compiledChildren
+  var compiledChildrenCode
   const scopes = context.scopes || ['props']
+  const graphScopes = context.graphScopes || []
 
   if (nodesTree.variable_node) {
     varName = nodesTree.variable_node.var_name.text
@@ -63,6 +106,8 @@ function compileMustache(nodesTree, context={}) {
     } else {
       code = `scs([${scopes.join(',')}], "${varName}")`
     }
+
+    structure = getStructureForVar(graphScopes, varName)
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name
     const newScope = context.__plainScopeNames
@@ -72,19 +117,28 @@ function compileMustache(nodesTree, context={}) {
     // TODO: keys for children
     // TODO: wrap text nodes in span
     if (children && children.length) {
-      compiledChildren = children.map((n, index) => compileAny(
+      compiledChildren = children.map(n => compileAny(
         n,
-        createContext(context, 'scopes', [newScope].concat(scopes))
-      ).code)
+        createContext(
+          createContext(context, 'scopes', [newScope].concat(scopes)),
+          'graphScopes', graphScopes.concat(varName)
+        )
+      ))
+
+      compiledChildrenCode = compiledChildren.map(c => c.code)
       if (children.length === 1) {
-        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildren}) }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
+        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildrenCode}) }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       } else if (context.__stringifyChildren) {
-        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}].join('') }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
+        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildrenCode}].join('') }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       } else {
-        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}] }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
+        code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildrenCode}] }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       }
 
       if (context.__stringifyChildren) { code = `(${code} || '')` }
+
+      structure = getStructureForVar(graphScopes, varName)
+
+      structure = compiledChildren.map(c => c.structure).reduce(mergeStructures, structure)
     }
   } else if (nodesTree.inverted_section_node) {
     varName = nodesTree.inverted_section_node.var_name
@@ -92,23 +146,35 @@ function compileMustache(nodesTree, context={}) {
     // TODO: keys for children
     // TODO: wrap text nodes in span
     if (children && children.length) {
-      compiledChildren = children.map((n, index) => compileAny(n, context).code)
+      compiledChildren = children.map(n => compileAny(n, context))
+      compiledChildrenCode = compiledChildren.map(c => c.code)
       if (children.length === 1) {
-        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return (${compiledChildren}) })`
+        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return (${compiledChildrenCode}) })`
       } else if (context.__stringifyChildren) {
-        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}].join('') })`
+        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildrenCode}].join('') })`
       } else {
-        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}] })`
+        code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildrenCode}] })`
       }
 
       if (context.__stringifyChildren) { code = `(${code} || '')` }
+
+      structure = varName.split('.').reverse().reduce(
+        (acc, vPart, i, path) => ({['+'+vPart]: acc}),
+        undefined
+      )
+
+      structure = compiledChildren.map(c => c.structure).reduce(mergeStructures, structure)
     }
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n'
   } else if (nodesTree.partial_node) {
     code = `partial_node(require("${nodesTree.partial_node.path_node.text}"), ${scopes[0]})`
   }
-  return {code, escaped: isEscapedMustache(nodesTree)}
+  return {
+    code,
+    structure,
+    escaped: isEscapedMustache(nodesTree)
+  }
 }
 
 function dashToUpperCase(match, letter, offset, string) {
@@ -139,6 +205,7 @@ function prerareStyle(styleString) {
 
 function compileAttrsMustache(context, node) {
   var code = 'null'
+  var structure
   const scopes = (context.scopes || ['props']).slice()
 
   if (node.attr_section_node) {
@@ -160,7 +227,11 @@ function compileAttrsMustache(context, node) {
   } else if (node.commented_node) {
     code = '// ' + node.commented_node.text_node.text.replace('\n', ' ') + '\n'
   }
-  return {code, escaped: isEscapedMustache(node)}
+  return {
+    code,
+    structure,
+    escaped: isEscapedMustache(node),
+  }
 }
 
 function compileAttrs(context, acc, node) {
@@ -266,6 +337,7 @@ function compileDOM(nodesTree, context={}) {
           )
         }
       )\n`,
+      structure: compiledChildren.map(v => v.structure).reduce(mergeStructures, undefined)
     }
   }
 
@@ -487,7 +559,8 @@ module.exports.lowLevel = {
   compileAny,
   compileDOM,
   compileMustache,
-  prerareStyle,
+  prerareStyle, // i'm very sorry
+  prepareStyle: prerareStyle,
   compileAttrs,
   PEGtypes: types,
   PEGactions: actions,
