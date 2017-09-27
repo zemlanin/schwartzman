@@ -1,6 +1,5 @@
 var webpack = require("webpack");
 var path = require('path');
-var PROJECT_DEPS = process.env.PROJECT_DEPS || __dirname;
 
 module.exports = {
   entry: {
@@ -18,9 +17,9 @@ module.exports = {
     ],
   },
   resolve: {
-    root: path.join(PROJECT_DEPS, 'src'),
+    root: path.join(__dirname, 'src'),
     modulesDirectories: [
-      path.resolve(__dirname, "src"),
+      path.resolve(__dirname, 'src'),
     ],
     extensions: ['.js', ''],
   },

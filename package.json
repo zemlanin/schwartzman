@@ -12,7 +12,8 @@
     "prepublish": "npm run build",
     "test": "NODE_ENV=test mocha",
     "webpack": "webpack",
-    "examples": "npm run build && webpack --config webpack.examples.config.js"
+    "examples": "npm run build && webpack --config webpack.examples.config.js",
+    "peer:react": "sh -c 'npm install -g --prefix test/peer/react-$0 react@$0 react-dom@$0'"
   },
   "author": "Anton Verinov <anton@verinov.com>",
   "license": "MIT",
@@ -26,13 +27,17 @@
     "canopy": "^0.3.0",
     "lodash.range": "^3.0.1",
     "mocha": "^2.3.3",
+    "mockery": "2.1.0",
     "mustache": "^2.2.0",
     "pegjs": "^0.9.0",
-    "react": "^0.14.3",
-    "react-dom": "^0.14.3",
+    "react": "^16.0.0",
+    "react-dom": "^16.0.0",
     "webpack": "^1.12.2"
   },
   "dependencies": {
     "loader-utils": "^0.2.12"
+  },
+  "peerDependencies": {
+    "react": "^0.14.3 || ^15.6.1 || ^16.0.0"
   }
 }

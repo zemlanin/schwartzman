@@ -1,7 +1,6 @@
 'use strict'
 
-var React = require("react")
-var ReactDOMServer = require("react-dom/server")
+var mockery = require("mockery")
 var assert = require("assert")
 var schwartzman = require("../dist/schwartzman").bind({
   cacheble: function () {},
@@ -9,6 +8,32 @@ var schwartzman = require("../dist/schwartzman").bind({
 })
 
 describe('rendering', function () {
+  var React, ReactDOMServer
+  if (process.env.REACT_VERSION) {
+    before(function () {
+      mockery.enable({
+        warnOnReplace: false,
+        warnOnUnregistered: false
+      })
+
+      var peerReact = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react')
+      var peerReactDOM = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom')
+
+      mockery.registerMock('react', peerReact);
+      mockery.registerMock('react-dom', peerReactDOM);
+
+      React = require('react')
+      ReactDOMServer = require('react-dom/server')
+    })
+
+    after(function () {
+      mockery.disable()
+    })
+  } else {
+    React = require('react')
+    ReactDOMServer = require('react-dom/server')
+  }
+
   it('classnames without commas', function () {
     var tmpl = eval(schwartzman(
       '<div class="x {{#suffix}}c_{{suffix}}{{/suffix}}">classes should be equal "x c_x"</div>'

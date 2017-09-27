@@ -1,6 +1,7 @@
 'use strict'
 
 var assert = require("assert")
+var mockery = require("mockery")
 var schwartzman = require("../dist/schwartzman").bind({
   cacheble: function () {},
   query: process.env.ENABLE_LAMBDAS ? '?{lambdas: true}' : ''
@@ -20,6 +21,25 @@ function parseAndCompile(tmpl, v) {
 }
 
 describe('schwartzman', function() {
+  if (process.env.REACT_VERSION) {
+    before(function () {
+      mockery.enable({
+        warnOnReplace: false,
+        warnOnUnregistered: false
+      })
+
+      var peerReact = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react')
+      var peerReactDOM = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom')
+
+      mockery.registerMock('react', peerReact);
+      mockery.registerMock('react-dom', peerReactDOM);
+    })
+
+    after(function () {
+      mockery.disable()
+    })
+  }
+
   describe('compileAttrs', function () {
     it('empty arg returns an object', function () {
       assert.deepEqual(LL.compileAttrs({varName: 'props'}, '', {}), '')
