@@ -1,8 +1,8 @@
 language: node_js
 node_js:
-  - "4"
-  - "6"
-  - "8"
+  - 4
+  - 6
+  - 8
 before_install:
   - NPM_V=$(npm -v); if [[ ${NPM_V:0:1} == "2" ]]; then npm install -g npm@3; fi
 install:
@@ -14,3 +14,21 @@ env:
   - REACT_VERSION=0.14.3
   - REACT_VERSION=15.6.1
   - REACT_VERSION=16.0.0
+matrix:
+  exclude:
+  - node_js: 4
+    env: ENABLE_LAMBDAS=1
+  - node_js: 4
+    env: REACT_VERSION=0.14.3
+  - node_js: 4
+    env: REACT_VERSION=15.6.1
+  - node_js: 4
+    env: REACT_VERSION=16.0.0
+  - node_js: 6
+    env: ENABLE_LAMBDAS=1
+  - node_js: 6
+    env: REACT_VERSION=0.14.3
+  - node_js: 6
+    env: REACT_VERSION=15.6.1
+  - node_js: 6
+    env: REACT_VERSION=16.0.0
