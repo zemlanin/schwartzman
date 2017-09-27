@@ -1,6 +1,7 @@
 'use strict'
 
 var mockery = require("mockery")
+var semver = require("semver")
 var assert = require("assert")
 var schwartzman = require("../dist/schwartzman").bind({
   cacheble: function () {},
@@ -18,9 +19,11 @@ describe('rendering', function () {
 
       var peerReact = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react')
       var peerReactDOM = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom')
+      var peerReactDOMServer = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom/server')
 
       mockery.registerMock('react', peerReact);
       mockery.registerMock('react-dom', peerReactDOM);
+      mockery.registerMock('react-dom/server', peerReactDOMServer);
 
       React = require('react')
       ReactDOMServer = require('react-dom/server')
@@ -180,8 +183,39 @@ describe('rendering', function () {
       </div>
     `))
 
+    var rendered
+
+    if (semver.gte(React.version, '16.0.0')) {
+      rendered = `<div><b checked="">&amp;</b><div class="lol"></div><div checked=""></div><i style="text-decoration:underline">underlined</i></div>`
+    } else {
+      rendered = `<div><b checked="">&amp;</b><div class="lol"></div><div checked=""></div><i style="text-decoration:underline;">underlined</i></div>`
+    }
+
     assert.equal(
-      `<div><b checked="">&amp;</b><div class="lol"></div><div checked=""></div><i style="text-decoration:underline;">underlined</i></div>`,
+      rendered,
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl, {
+          amp: '&amp;',
+        })
+      )
+    )
+  })
+
+  it('multiple styles', function () {
+    var tmpl = eval(schwartzman(`
+      <div style="text-decoration: underline; color: red;">red underlined</div>
+    `))
+
+    var rendered
+
+    if (semver.gte(React.version, '16.0.0')) {
+      rendered = `<div style="text-decoration:underline;color:red">red underlined</div>`
+    } else {
+      rendered = `<div style="text-decoration:underline;color:red;">red underlined</div>`
+    }
+
+    assert.equal(
+      rendered,
       ReactDOMServer.renderToStaticMarkup(
         React.createElement(tmpl, {
           amp: '&amp;',
