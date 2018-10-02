@@ -267,4 +267,42 @@ describe('rendering', function () {
       )
     )
   })
+
+  it('computed style', function () {
+    var tmpl = eval(schwartzman(
+      '<span style={{sm}}>should have small font-size</span>'
+    ))
+
+    assert.equal(
+      '<span style="font-size:10px">should have small font-size</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl, {sm: "font-size: 10px"})
+      )
+    )
+
+    assert.equal(
+      '<span style="font-size:5%">should have small font-size</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl, {sm: "font-size: 5%"})
+      )
+    )
+
+    var tmpl2 = eval(schwartzman(
+      '<span style="{{sm}}; color: red">should have small font-size</span>'
+    ))
+
+    assert.equal(
+      '<span style="font-size:10px;color:red">should have small font-size</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl2, {sm: "font-size: 10px"})
+      )
+    )
+
+    assert.equal(
+      '<span style="color:red">should have small font-size</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl2, {sm: ""})
+      )
+    )
+  })
 })

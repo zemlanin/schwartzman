@@ -272,6 +272,28 @@ describe('schwartzman', function() {
       )
     })
 
+    it('compiles variable node inside `style` attr value', function () {
+      assert.equal(
+        parseAndCompile('<p style="color: red"></p>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.createElement("p",{"style":{"color":"red"}})' // loses space because of replace inside a test
+      )
+
+      assert.equal(
+        parseAndCompile('<p style={{kek}}></p>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.createElement("p",{"style":prepareStyle(props.kek)})' // loses space because of replace inside a test
+      )
+
+      assert.equal(
+        parseAndCompile('<p style="{{lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.createElement("p",{"style":prepareStyle(props.lol)})' // loses space because of replace inside a test
+      )
+
+      assert.equal(
+        parseAndCompile('<p style="{{rofl}}; display: inline-block"></p>', {varName: 'props'}).replace(/\s+/g, ''),
+        'React.createElement("p",{"style":prepareStyle(props.rofl+";display:inline-block")})' // loses space because of replace inside a test
+      )
+    })
+
     it('compiles section node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),

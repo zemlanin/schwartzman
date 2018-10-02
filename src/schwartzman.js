@@ -2,6 +2,7 @@ import {parse} from './grammar'
 import {parseQuery} from 'loader-utils'
 
 let id = 0
+const PREPARE_STYLE_COMPILED_NAME = "prepareStyle"
 
 function createContext (prevContext, key, value) {
   var newContext = {
@@ -116,25 +117,28 @@ function dashToUpperCase(match, letter, offset, string) {
 }
 
 function prepareStyle(styleString) {
-  const attributes = styleString.split(';')
+  var attributes = styleString.split(';')
 
-  let result = {}
-  for (let i = 0; i < attributes.length; i++) {
-    const [key, value] = attributes[i].split(/:(.+)/)
+  var result = {}
+  var keyAndValue, key, value, formattedKey, formattedValue
+  for (var i = 0; i < attributes.length; i++) {
+    keyAndValue = attributes[i].split(/:(.+)/)
+    key = keyAndValue[0]
+    value = keyAndValue[1]
 
     if (!(key && value)) { continue }
-    const formattedKey = key.toLowerCase()
-                            .replace(/^\s+/, '')
-                            .replace(/\s+$/, '')
-                            .replace(/-([a-z])/g, dashToUpperCase)
-                            .replace(/-/g, '')
-    const formattedValue = value.replace(/^\s+/, '')
-                                .replace(/\s+$/, '')
+    formattedKey = key.toLowerCase()
+                      .replace(/^\s+/, '')
+                      .replace(/\s+$/, '')
+                      .replace(/-([a-z])/g, dashToUpperCase)
+                      .replace(/-/g, '')
+    formattedValue = value.replace(/^\s+/, '')
+                          .replace(/\s+$/, '')
 
     result[formattedKey] = formattedValue
   }
 
-  return JSON.stringify(result)
+  return result
 }
 
 function compileAttrsMustache(context, node) {
@@ -176,9 +180,12 @@ function compileAttrs(context, acc, node) {
 
   if (attrKey === 'class') { attrKey = 'className' }
 
+  var mustacheInValue = false
+
   if (!value) {
     attrValue = 'true'
   } else if (value._type === 'MustacheNode') {
+    mustacheInValue = true
     attrValue = compileMustache(value, createContext(context, '__stringifyChildren', true)).code
   } else if (!value.elements && !inner) {
     attrValue = JSON.stringify(value.text)
@@ -187,6 +194,7 @@ function compileAttrs(context, acc, node) {
       .filter(v => v.text)
       .map(v => {
         if (v._type === 'MustacheNode') {
+          mustacheInValue = true
           return compileMustache(v, createContext(context, '__stringifyChildren', true)).code
         } else {
           return JSON.stringify(v.text)
@@ -195,13 +203,14 @@ function compileAttrs(context, acc, node) {
       .join('+')
   }
 
-  switch (attrKey) {
-    case 'style':
-      attrValue = prerareStyle(value.text)
-      break
-    case 'dangerouslySetInnerHTML':
-      attrValue = value
-      break
+  if (attrKey === 'style') {
+    attrValue = mustacheInValue
+      ? PREPARE_STYLE_COMPILED_NAME + "(" + attrValue + ")"
+      : JSON.stringify(prepareStyle(value.text))
+  }
+
+  if (attrKey === 'dangerouslySetInnerHTML') {
+    attrValue = value
   }
 
   attrKey = JSON.stringify(attrKey)
@@ -349,6 +358,8 @@ function dependencyMapper(lambdas, name) {
 
         return React.createElement(module, props)
       }`
+    case 'prepare_style':
+      return prepareStyle.toString().replace(prepareStyle.name, PREPARE_STYLE_COMPILED_NAME) + ";" + dashToUpperCase.toString()
   }
 }
 
@@ -469,6 +480,10 @@ function schwartzman (content) {
       ).join('),(') + ')]'
   }
 
+  if (result.indexOf(PREPARE_STYLE_COMPILED_NAME + "(") > -1) {
+    dependencies.push("prepare_style")
+  }
+
   return `
     'use strict'
     // compiled with schwartzman ${VERSION}
@@ -488,7 +503,6 @@ module.exports.lowLevel = {
   compileDOM,
   compileMustache,
   prepareStyle,
-  prerareStyle: prepareStyle,
   compileAttrs,
   PEGtypes: types,
   PEGactions: actions,
