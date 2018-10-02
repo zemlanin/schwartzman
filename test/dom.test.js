@@ -260,6 +260,13 @@ describe('schwartzman', function() {
       )
     })
 
+    it('compiles naked attr value', function () {
+      assert.equal(
+        parseAndCompile("<p id=a></p>", {varName: 'props'}).replace(/\s+/g, ''),
+        'React.createElement("p",{"id":"a"})'
+      )
+    })
+
     it('compiles variable node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),

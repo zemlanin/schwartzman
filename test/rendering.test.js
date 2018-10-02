@@ -217,9 +217,7 @@ describe('rendering', function () {
     assert.equal(
       rendered,
       ReactDOMServer.renderToStaticMarkup(
-        React.createElement(tmpl, {
-          amp: '&amp;',
-        })
+        React.createElement(tmpl, {})
       )
     )
   })
@@ -264,6 +262,19 @@ describe('rendering', function () {
       '<span hidden="">hidden should be truthy</span>',
       ReactDOMServer.renderToStaticMarkup(
         React.createElement(tmpl2, {y: true})
+      )
+    )
+  })
+
+  it('naked attribute values', function () {
+    var tmpl = eval(schwartzman(
+      '<span id=a>id\'d</span>'
+    ))
+
+    assert.equal(
+      '<span id="a">id&#x27;d</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(tmpl)
       )
     )
   })

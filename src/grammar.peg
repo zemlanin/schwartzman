@@ -6,7 +6,7 @@ open_html_tag       <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whit
 contained_html_tag  <- "<" whitespace? tag_name whitespace? attrs:dom_attr* whitespace? "/>"
 close_html_tag      <- "</" tag_name ">"
 tag_name            <- [a-z0-9]+
-dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / var_name / mustache_node) whitespace? / name:dashed_var_name whitespace? / attr_mustache_node
+dom_attr            <- name:dashed_var_name "=" value:(dq_string_literal / sq_string_literal / naked_attr_value / mustache_node) whitespace? / name:dashed_var_name whitespace? / attr_mustache_node
 
 commented_html      <- "<!--" (!"-->" .)* "-->" whitespace?
 
@@ -29,6 +29,7 @@ commented_node              <- "{{!" whitespace? text_node whitespace? "}}"
 partial_node                <- "{{>" whitespace? path_node whitespace? "}}"
 
 whitespace_node   <- [ \s]+ <WhitespaceNode>
+naked_attr_value  <- (!"{{" (!"}}" [^'"\s<>]+))
 text_node         <- (!"{{" (!"}}" [^<>]))+ <TextNode>
 path_node         <- [_a-zA-Z0-9\\\-\/\.]+
 
