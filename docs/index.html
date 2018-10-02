@@ -18,7 +18,7 @@
       <a href="http://mustache.github.io/mustache.5.html" target="_blank" class="pure-menu-link">mustache syntax</a>
     </li>
     <li class="pure-menu-item">
-      <a href="http://bigl.ua" target="_blank" class="pure-menu-link">bigl.ua</a>
+      <a href="https://zemlan.in" target="_blank" class="pure-menu-link">@zemlanin</a>
     </li>
   </div>
   <div class="pure-g" style="margin: 0 auto">
@@ -43,7 +43,7 @@
   </div>
 
   <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom-server.browser.production.min.js"></script>
   <script type="text/javascript" data-src="https://unpkg.com/schwartzman"></script>
   <script type="text/javascript">
     window.getParameterByName = function getParameterByName (name) {
@@ -87,7 +87,7 @@
 
         props = eval('(' + document.getElementById('props').value + ')')
         template = eval(contents)
-        window.ReactDOM.render(
+        document.getElementById('renderTarget').innerHTML = window.ReactDOMServer.renderToStaticMarkup(
           React.createElement(template, props),
           document.getElementById('renderTarget')
         )
