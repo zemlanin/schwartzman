@@ -8,6 +8,7 @@ function createContext (prevContext, key, value) {
   var newContext = {
     varName: prevContext.varName,
     scopes: prevContext.scopes,
+    dependencies: prevContext.dependencies,
     __plainScopeNames: prevContext.__plainScopeNames,
     __stringifyChildren: prevContext.__stringifyChildren,
   }
@@ -50,6 +51,15 @@ function compileAny(nodesTree, context) {
   }
 }
 
+function addDependency(context, dependency) {
+  if (context && context.dependencies && context.dependencies.indexOf(dependency) === -1) {
+    context.dependencies.push(dependency)
+  }
+  if (dependency === "section" || dependency === "inverted_section") {
+    addDependency(context, "scs")
+  }
+}
+
 function compileMustache(nodesTree, context={}) {
   var code = 'null'
   var varName
@@ -62,6 +72,7 @@ function compileMustache(nodesTree, context={}) {
     if (scopes.length === 1) {
       code = `props.${varName}`
     } else {
+      addDependency(context, "scs")
       code = `scs([${scopes.join(',')}], "${varName}")`
     }
   } else if (nodesTree.section_node) {
@@ -77,6 +88,9 @@ function compileMustache(nodesTree, context={}) {
         n,
         createContext(context, 'scopes', [newScope].concat(scopes))
       ).code)
+
+      addDependency(context, "section")
+
       if (children.length === 1) {
         code = `section([${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildren}) }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       } else if (context.__stringifyChildren) {
@@ -94,6 +108,7 @@ function compileMustache(nodesTree, context={}) {
     // TODO: wrap text nodes in span
     if (children && children.length) {
       compiledChildren = children.map((n, index) => compileAny(n, context).code)
+      addDependency(context, "inverted_section")
       if (children.length === 1) {
         code = `inverted_section([${scopes.join(',')}], "${varName}", function(){ return (${compiledChildren}) })`
       } else if (context.__stringifyChildren) {
@@ -107,6 +122,7 @@ function compileMustache(nodesTree, context={}) {
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n'
   } else if (nodesTree.partial_node) {
+    addDependency(context, "partial_node")
     code = `partial_node(require("${nodesTree.partial_node.path_node.text}"), ${scopes[0]})`
   }
   return {code, escaped: isEscapedMustache(nodesTree)}
@@ -117,6 +133,10 @@ function dashToUpperCase(match, letter, offset, string) {
 }
 
 function prepareStyle(styleString) {
+  if (!styleString) {
+    return null
+  }
+
   var attributes = styleString.split(';')
 
   var result = {}
@@ -151,6 +171,7 @@ function compileAttrsMustache(context, node) {
     if (scopes.length == 1) {
       code = `"${child}": !!props.${varName}`
     } else {
+      addDependency(context, "scs")
       code = `"${child}": !!scs([${scopes.join(',')}], "${varName}")`
     }
   } else if (node.attr_inverted_section_node) {
@@ -159,6 +180,7 @@ function compileAttrsMustache(context, node) {
     if (scopes.length == 1) {
       code = `"${child}": !props.${varName}`
     } else {
+      addDependency(context, "scs")
       code = `"${child}": !scs([${scopes.join(',')}], "${varName}")`
     }
   } else if (node.commented_node) {
@@ -204,9 +226,12 @@ function compileAttrs(context, acc, node) {
   }
 
   if (attrKey === 'style') {
-    attrValue = mustacheInValue
-      ? PREPARE_STYLE_COMPILED_NAME + "(" + attrValue + ")"
-      : JSON.stringify(prepareStyle(value.text))
+    if (mustacheInValue) {
+      attrValue = PREPARE_STYLE_COMPILED_NAME + "(" + attrValue + ")"
+      addDependency(context, "prepare_style")
+    } else {
+      attrValue = JSON.stringify(prepareStyle(value.text))
+    }
   }
 
   if (attrKey === 'dangerouslySetInnerHTML') {
@@ -359,7 +384,7 @@ function dependencyMapper(lambdas, name) {
         return React.createElement(module, props)
       }`
     case 'prepare_style':
-      return prepareStyle.toString().replace(prepareStyle.name, PREPARE_STYLE_COMPILED_NAME) + ";" + dashToUpperCase.toString()
+      return dashToUpperCase.toString() + ";" + prepareStyle.toString().replace(prepareStyle.name, PREPARE_STYLE_COMPILED_NAME)
   }
 }
 
@@ -462,7 +487,7 @@ function schwartzman (content) {
   const lambdas = !!(this && parseQuery(this.query).lambdas)
   const parsedTree = parse(content, {actions, types})
   let result
-  let dependencies
+  let dependencies = []
 
   switch (parsedTree.elements.length) {
     case 0:
@@ -470,18 +495,14 @@ function schwartzman (content) {
       result = 'null'
       break
     case 1:
-      dependencies = ['react', 'scs', 'section', 'inverted_section', 'partial_node']
-      result = '(' + compileAny(parsedTree.elements[0], {varName: 'props', scopes: ['props']}).code + ')'
+      dependencies.push("react")
+      result = '(' + compileAny(parsedTree.elements[0], {varName: 'props', scopes: ['props'], dependencies}).code + ')'
       break
     default:
-      dependencies = ['react', 'scs', 'section', 'inverted_section', 'partial_node']
+      dependencies.push("react")
       result = '[(' + parsedTree.elements.map(
-        el => compileAny(el, {varName: 'props', scopes: ['props']}).code
+        el => compileAny(el, {varName: 'props', scopes: ['props'], dependencies}).code
       ).join('),(') + ')]'
-  }
-
-  if (result.indexOf(PREPARE_STYLE_COMPILED_NAME + "(") > -1) {
-    dependencies.push("prepare_style")
   }
 
   return `
