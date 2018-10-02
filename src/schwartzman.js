@@ -115,7 +115,7 @@ function dashToUpperCase(match, letter, offset, string) {
   return letter.toUpperCase()
 }
 
-function prerareStyle(styleString) {
+function prepareStyle(styleString) {
   const attributes = styleString.split(';')
 
   let result = {}
@@ -487,7 +487,8 @@ module.exports.lowLevel = {
   compileAny,
   compileDOM,
   compileMustache,
-  prerareStyle,
+  prepareStyle,
+  prerareStyle: prepareStyle,
   compileAttrs,
   PEGtypes: types,
   PEGactions: actions,
