@@ -40,7 +40,7 @@ letter            <- [_a-zA-Z]
 dot_alphanum      <- "."? [_a-zA-Z0-9]+
 dash_alphanum     <- "-"? [_a-zA-Z0-9]+
 
-sq_string_literal <-  "'" ([^'\\{]+ / mustache_node)*  "'"  %removeQuotes # TODO: escaping
-dq_string_literal <- "\"" ([^"\\{]+ / mustache_node)* "\""  %removeQuotes # TODO: escaping
+sq_string_literal <-  "'" ((!"{{" [^'])+ / mustache_node)*  "'"  %removeQuotes # TODO: escaping
+dq_string_literal <- "\"" ((!"{{" [^"])+ / mustache_node)* "\""  %removeQuotes # TODO: escaping
 
 whitespace        <- [ \s]+
