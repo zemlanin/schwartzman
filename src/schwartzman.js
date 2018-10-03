@@ -2,8 +2,8 @@ import {parse} from './grammar'
 import {parseQuery} from 'loader-utils'
 
 let id = 0
+const HYPERSCRIPT = "h"
 const RUNTIME_DEPENDENCIES = {
-  react: "react",
   prepareStyle: prepareStyle.name,
   scs: "scs",
   section: "section",
@@ -287,7 +287,7 @@ function compileDOM(nodesTree, context={}) {
   attrs = attrsContent ? '{' + attrsContent + '}' : null
   if (compiledChildren && !attrsContent.dangerouslySetInnerHTML) {
     return {
-      code: `React.createElement(
+      code: `${HYPERSCRIPT}(
         "${tagName}",
         ${attrs}
         ${compiledChildren
@@ -310,13 +310,11 @@ function compileDOM(nodesTree, context={}) {
     }
   }
 
-  return {code: `React.createElement("${tagName}", ${attrs})\n`}
+  return {code: `${HYPERSCRIPT}("${tagName}", ${attrs})\n`}
 }
 
 function dependencyMapper(lambdas, name) {
   switch (name) {
-    case RUNTIME_DEPENDENCIES.react:
-      return `var React = require('react')`
     case RUNTIME_DEPENDENCIES.scs:  // scopes search
       return `function ${RUNTIME_DEPENDENCIES.scs}(scopes, name) {
         var result
@@ -386,9 +384,9 @@ function dependencyMapper(lambdas, name) {
       return `function ${RUNTIME_DEPENDENCIES.partial_node}(module, props) {
         if (!module) { return null }
 
-        if (module.__esModule) { return React.createElement(module.default, props) }
+        if (module.__esModule) { return ${HYPERSCRIPT}(module.default, props) }
 
-        return React.createElement(module, props)
+        return ${HYPERSCRIPT}(module, props)
       }`
     case RUNTIME_DEPENDENCIES.prepareStyle:
       return dashToUpperCase.toString() + ";" + prepareStyle.toString()
@@ -502,6 +500,7 @@ function schwartzman (content) {
   if (this && this.cacheable) { this.cacheable() }
 
   const lambdas = !!(this && parseQuery(this.query).lambdas)
+  const prelude = (this && parseQuery(this.query).prelude) || `var ${HYPERSCRIPT} = require('react').createElement;`
   const parsedTree = parse(content, {actions, types})
   let result
   let dependencies = {}
@@ -517,11 +516,9 @@ function schwartzman (content) {
       result = 'null'
       break
     case 1:
-      dependencies[RUNTIME_DEPENDENCIES.react] = 1
       result = '(' + compileAny(parsedTree.elements[0], {varName: 'props', scopes: ['props'], dependencies}).code + ')'
       break
     default:
-      dependencies[RUNTIME_DEPENDENCIES.react] = 1
       result = '[(' + parsedTree.elements.map(
         el => compileAny(el, {varName: 'props', scopes: ['props'], dependencies}).code
       ).join('),(') + ')]'
@@ -530,6 +527,8 @@ function schwartzman (content) {
   return `
     'use strict'
     // compiled with schwartzman ${VERSION}
+    ${parsedTree.elements.length ? prelude : ''}
+
     ${objectKeys(dependencies).map(dependencyMapper.bind(null, lambdas)).join('\n')}
 
     module.exports = function (props) { return ${result} }
