@@ -326,4 +326,29 @@ describe('rendering', function () {
       )
     )
   })
+
+  it('curlybraces', function () {
+    assert.equal(
+      '<span>}</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(eval(schwartzman('<span>}</span>')))
+      )
+    )
+
+    assert.equal(
+      '<span>}}</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(eval(schwartzman('<span>}}</span>')))
+      )
+    )
+
+    assert.equal(
+      '<span>{}}</span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(eval(schwartzman('<span>{}}</span>')))
+      )
+    )
+
+    assert.throws(function () { schwartzman('<span>{{</span>') }, /SyntaxError/)
+  })
 })

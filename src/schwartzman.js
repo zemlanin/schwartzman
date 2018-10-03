@@ -49,6 +49,9 @@ function compileAny(nodesTree, context) {
     case 'TextNode':
       return {code: JSON.stringify(nodesTree.text)}
       break;
+    case 'NakedAttrNode':
+      return {code: JSON.stringify(nodesTree.text)}
+      break;
     case 'WhitespaceNode':
       return {code: JSON.stringify(nodesTree.text), whitespace: true}
       break;
@@ -127,7 +130,7 @@ function compileMustache(nodesTree, context={}) {
       if (context.__stringifyChildren) { code = `(${code} || '')` }
     }
   } else if (nodesTree.commented_node) {
-    code = '// ' + nodesTree.commented_node.text_node.text.replace('\n', ' ') + '\n'
+    code = '// ' + nodesTree.commented_node.comment_text_node.text.replace('\n', ' ') + '\n'
   } else if (nodesTree.partial_node) {
     addDependency(context, RUNTIME_DEPENDENCIES.partial_node)
     code = `${RUNTIME_DEPENDENCIES.partial_node}(require("${nodesTree.partial_node.path_node.text}"), ${scopes[0]})`
@@ -216,7 +219,7 @@ function compileAttrs(context, acc, node) {
   } else if (value._type === 'MustacheNode') {
     mustacheInValue = true
     attrValue = compileMustache(value, createContext(context, '__stringifyChildren', true)).code
-  } else if (!value.elements && !inner) {
+  } else if (!value.elements && !inner || value._type == "NakedAttrNode") {
     attrValue = JSON.stringify(value.text)
   } else if (!inner) {
     attrValue = value.elements
@@ -483,6 +486,9 @@ const types = {
   },
   CommentedDOMNode: {
     _type: 'CommentedDOMNode',
+  },
+  NakedAttrNode: {
+    _type: 'NakedAttrNode',
   },
 }
 

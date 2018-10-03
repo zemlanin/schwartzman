@@ -327,6 +327,16 @@ describe('schwartzman', function() {
         parseAndCompile("<p>{{lol}}</p>", {varName: 'props'}).replace(/\s+/g, ''),
         'h("p",null,props.lol)'
       )
+
+      assert.equal(
+        parseAndCompile("<p>x{{lol}}</p>", {varName: 'props'}).replace(/\s+/g, ''),
+        'h("p",null,"x",props.lol)'
+      )
+
+      assert.equal(
+        parseAndCompile("<p>{{lol}}x</p>", {varName: 'props'}).replace(/\s+/g, ''),
+        'h("p",null,props.lol,"x")'
+      )
     })
 
     it('compiles section node with text inside', function () {
@@ -383,6 +393,15 @@ describe('schwartzman', function() {
         '"p",\n'+
         'null\n'+
         ',"lol"//comment\n'+
+        ')'
+      )
+
+      assert.equal(
+        parseAndCompile('<p>lol{{! }}</p>', {varName: 'props'}).replace(/ +/g, '').replace(/\n\n+/g, '\n'),
+        'h(\n'+
+        '"p",\n'+
+        'null\n'+
+        ',"lol"//\n'+
         ')'
       )
     })
