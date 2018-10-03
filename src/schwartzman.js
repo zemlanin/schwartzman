@@ -38,6 +38,8 @@ function isEscapedMustache(node) {
   )
 }
 
+const ESCAPED_CURLY_REGEX = /\\([{}])/g
+
 function compileAny(nodesTree, context) {
   switch (nodesTree._type) {
     case 'DOMNode':
@@ -47,7 +49,7 @@ function compileAny(nodesTree, context) {
       return compileMustache(nodesTree, context)
       break;
     case 'TextNode':
-      return {code: JSON.stringify(nodesTree.text)}
+      return {code: JSON.stringify(nodesTree.text.replace(ESCAPED_CURLY_REGEX, "$1"))}
       break;
     case 'NakedAttrNode':
       return {code: JSON.stringify(nodesTree.text)}
@@ -130,7 +132,7 @@ function compileMustache(nodesTree, context={}) {
       if (context.__stringifyChildren) { code = `(${code} || '')` }
     }
   } else if (nodesTree.commented_node) {
-    code = '// ' + nodesTree.commented_node.comment_text_node.text.replace('\n', ' ') + '\n'
+    code = '// ' + nodesTree.commented_node.comment_text_node.text.replace(ESCAPED_CURLY_REGEX, "$1").replace(/\n+/g, ' ') + '\n'
   } else if (nodesTree.partial_node) {
     addDependency(context, RUNTIME_DEPENDENCIES.partial_node)
     code = `${RUNTIME_DEPENDENCIES.partial_node}(require("${nodesTree.partial_node.path_node.text}"), ${scopes[0]})`

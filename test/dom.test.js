@@ -404,6 +404,15 @@ describe('schwartzman', function() {
         ',"lol"//\n'+
         ')'
       )
+
+      assert.equal(
+        parseAndCompile('<p>curlies{{! }\\} }}</p>', {varName: 'props'}).replace(/ +/g, '').replace(/\n\n+/g, '\n'),
+        'h(\n'+
+        '"p",\n'+
+        'null\n'+
+        ',"curlies"//}}\n'+
+        ')'
+      )
     })
 
     it('compiles escaped node', function () {
