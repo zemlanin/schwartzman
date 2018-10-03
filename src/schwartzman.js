@@ -222,7 +222,7 @@ function compileAttrs(context, acc, node) {
     mustacheInValue = true
     attrValue = compileMustache(value, createContext(context, '__stringifyChildren', true)).code
   } else if (!value.elements && !inner || value._type == "NakedAttrNode") {
-    attrValue = JSON.stringify(value.text)
+    attrValue = JSON.stringify(value.text.replace(ESCAPED_CURLY_REGEX, "$1"))
   } else if (!inner) {
     attrValue = value.elements
       .filter(v => v.text)
@@ -231,7 +231,7 @@ function compileAttrs(context, acc, node) {
           mustacheInValue = true
           return compileMustache(v, createContext(context, '__stringifyChildren', true)).code
         } else {
-          return JSON.stringify(v.text)
+          return JSON.stringify(v.text.replace(ESCAPED_CURLY_REGEX, "$1"))
         }
       })
       .join('+')

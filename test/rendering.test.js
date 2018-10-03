@@ -388,6 +388,20 @@ describe('rendering', function () {
       )
     )
 
+    assert.equal(
+      '<span id="{{}}"></span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(eval(schwartzman('<span id="{\\{}}"></span>')))
+      )
+    )
+
+    assert.equal(
+      '<span id="{{}}"></span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(eval(schwartzman('<span id={\\{}}></span>')))
+      )
+    )
+
     assert.throws(function () { schwartzman('<span>{{}\\}</span>') }, /SyntaxError/)
     assert.throws(function () { schwartzman('<span>{{name}\\}</span>') }, /SyntaxError/)
   })
