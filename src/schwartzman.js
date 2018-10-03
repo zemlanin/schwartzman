@@ -448,7 +448,15 @@ const actions = {
 
     return {elements}
   },
-  removeQuotes: (input, start, end, [lq, text, rq]) => text,
+  removeQuotes: (input, start, end, [lq, innerTextNode, rq]) => {
+    innerTextNode.text = innerTextNode.text.replace(/\\(['"])/g, "$1")
+
+    for (let i = 0; i < innerTextNode.elements.length; i++) {
+      innerTextNode.elements[i].text = innerTextNode.elements[i].text.replace(/\\(['"])/g, "$1")
+    }
+
+    return innerTextNode
+  },
   validate: (input, start, end, [open, nodes, close]) => {
     if (open.tag_name.text != close.tag_name.text) {
       throw new SyntaxError(`miss closed tag: ${open.text.trim()} and ${close.text.trim()}`)

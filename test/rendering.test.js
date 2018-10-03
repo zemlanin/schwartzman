@@ -405,4 +405,27 @@ describe('rendering', function () {
     assert.throws(function () { schwartzman('<span>{{}\\}</span>') }, /SyntaxError/)
     assert.throws(function () { schwartzman('<span>{{name}\\}</span>') }, /SyntaxError/)
   })
+
+  it('escaping attributes', function () {
+    assert.equal(
+      '<span id="&#x27;"></span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(eval(schwartzman('<span id="\'"></span>')))
+      )
+    )
+
+    assert.equal(
+      '<span id="&quot;"></span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(eval(schwartzman('<span id="\\""></span>')))
+      )
+    )
+
+    assert.equal(
+      '<span id="&#x27;"></span>',
+      ReactDOMServer.renderToStaticMarkup(
+        React.createElement(eval(schwartzman("<span id='\\''></span>")))
+      )
+    )
+  })
 })
