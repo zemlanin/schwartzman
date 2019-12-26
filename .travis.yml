@@ -2,9 +2,9 @@ language: node_js
 node_js:
   - 4
   - 6
-  - 8
+  - 12
 before_install:
-  - NPM_V=$(npm -v); if [[ ${NPM_V:0:1} == "2" ]]; then npm install -g npm@3; fi
+  - NPM_V=$(npm -v); if [[ ${NPM_V:0:1} == "2" ]]; then npm install -g npm@5; fi
 install:
   - '[ -z "$REACT_VERSION" ] || npm run peer:react -- $REACT_VERSION'
   - npm install

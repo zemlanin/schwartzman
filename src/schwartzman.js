@@ -515,8 +515,8 @@ function objectKeys(obj) {
 function schwartzman (content) {
   if (this && this.cacheable) { this.cacheable() }
 
-  const lambdas = !!(this && parseQuery(this.query).lambdas)
-  const prelude = (this && parseQuery(this.query).prelude) || `var ${HYPERSCRIPT} = require('react').createElement;`
+  const lambdas = !!(this && this.query && parseQuery(this.query).lambdas)
+  const prelude = (this && this.query && parseQuery(this.query).prelude) || `var ${HYPERSCRIPT} = require('react').createElement;`
   const parsedTree = parse(content, {actions, types})
   let result
   let dependencies = {}
