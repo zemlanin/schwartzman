@@ -321,17 +321,33 @@ function compileDOM(nodesTree, context={}) {
 function dependencyMapper(lambdas, name) {
   switch (name) {
     case RUNTIME_DEPENDENCIES.scs:  // scopes search
-      return `function ${RUNTIME_DEPENDENCIES.scs}(scopes, name) {
-        var result
+      return `function isArray(obj) { return !!(obj.length !== void 0 && obj.map) }
+      function isFunction(obj) { return !!(obj.constructor && obj.call && obj.apply) }
+      function isObject(obj) { return !!(typeof obj === 'object' && obj != null) }
+
+      function ${RUNTIME_DEPENDENCIES.scs}(scopes, name) {
+        var possibleScope, result, keyInScope
         var namePath = name.split('.')
 
         for (var i = 0; i < scopes.length; i++) {
-          result = scopes[i]
-          for (var n = 0; n < namePath.length && result != undefined; n++) {
-            result = result[namePath[n]]
+          if (isObject(scopes[i]) && !isArray(scopes[i]) && !isFunction(scopes[i])) {
+            possibleScope = scopes[i]
+          } else {
+            continue
           }
 
-          if (result != undefined && n > 0) { return result }
+          result = possibleScope
+          keyInScope = false
+
+          for (var n = 0; n < namePath.length && result != undefined; n++) {
+            keyInScope = namePath[n] in result
+
+            if (keyInScope) {
+              result = result[namePath[n]]
+            }
+          }
+
+          if (keyInScope) { return result }
         }
 
         return null
@@ -363,10 +379,10 @@ function dependencyMapper(lambdas, name) {
         function ${RUNTIME_DEPENDENCIES.section}(scopes, varName, fn, raw) {
           var obj = ${RUNTIME_DEPENDENCIES.scs}(scopes, varName)
           if (obj) {
-            if (obj.length !== void 0 && obj.map) {
+            if (isArray(obj)) {
               return obj.length ? obj.map(includeKey).map(fn) : null
       ${lambdas ?
-           `} else if (!!(obj && obj.constructor && obj.call && obj.apply)) {
+           `} else if (isFunction(obj)) {
               return obj(raw, render.bind(null, scopes, varName))` : ''
       }
             } else {
@@ -379,7 +395,7 @@ function dependencyMapper(lambdas, name) {
     case RUNTIME_DEPENDENCIES.inverted_section:
       return `function ${RUNTIME_DEPENDENCIES.inverted_section}(scopes, varName, fn) {
         var obj = ${RUNTIME_DEPENDENCIES.scs}(scopes, varName)
-        if (!obj || obj.length && obj.length === 0) {
+        if (!obj || obj.length === 0) {
           return fn()
         } else {
           return null

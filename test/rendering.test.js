@@ -108,6 +108,138 @@ describe('rendering', function () {
     )
   })
 
+  describe('section', function () {
+    var tmpl = eval(schwartzman(
+      `<div>{{# user }}[{{ name }}]{{/ user }}({{ name }})</div>`
+    ));
+
+    it('if', function () {
+      assert.equal(
+        '<div>[Anatoly Dyatlov](Anatoly Dyatlov)</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            {user: true, name: 'Anatoly Dyatlov'}
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>(Anatoly Dyatlov)</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            {user: false, name: 'Anatoly Dyatlov'}
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: false, name: null }
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>[]()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: function someFunc() { return function () {} } }
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>(Anatoly Dyatlov)</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            {name: 'Anatoly Dyatlov'}
+          )
+        )
+      )
+    })
+
+    it('scope', function () {
+      assert.equal(
+        '<div>[Anatoly Dyatlov](Ulana Khomyuk)</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: { name: 'Anatoly Dyatlov'}, name: 'Ulana Khomyuk' }
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>[]()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            {user: {}}
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>[Ulana Khomyuk](Ulana Khomyuk)</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: {}, name: 'Ulana Khomyuk' }
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>[](Ulana Khomyuk)</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: { name: null }, name: 'Ulana Khomyuk' }
+          )
+        )
+      )
+    })
+
+    it('for_each', function () {
+      assert.equal(
+        '<div>[Anatoly Dyatlov][Ulana Khomyuk]()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: [{ name: 'Anatoly Dyatlov'}, {name: 'Ulana Khomyuk'}] }
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            {user: []}
+          )
+        )
+      )
+
+      assert.equal(
+        '<div>[][]()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: [{}, {}] }
+          )
+        )
+      )
+    })
+  })
+
   it('comments', function () {
     var tmpl = eval(schwartzman(`
       <div>
