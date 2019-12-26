@@ -46,7 +46,7 @@ module.exports = {
 
 ## supported mustache blocks (with some limitations for attributes):
 * `{{ variable }}` and `{{{ escaped_variables }}}`
-* `{{# section }}` ([lambdas](http://mustache.github.io/mustache.5.html#Sections) are enabled by `lambdas` query param, see [webpack.examples.config.js](https://github.com/zemlanin/schwartzman/blob/master/webpack.examples.config.js))
+* `{{# section }}`
 * `{{^ inverted_section }}`
 * `{{! comment }}`
 * `{{> partial }}`
@@ -54,5 +54,5 @@ module.exports = {
 ## development
 ```bash
 $ npm i
-$ npm test // or `npm run examples`
+$ npm test
 ```

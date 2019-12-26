@@ -9,7 +9,7 @@ install:
   - '[ -z "$REACT_VERSION" ] || npm run peer:react -- $REACT_VERSION'
   - npm install
 env:
-  -
+  - REACT_VERSION=*
   - REACT_VERSION=0.14.3
   - REACT_VERSION=15.6.1
   - REACT_VERSION=16.0.0

@@ -119,11 +119,17 @@ function staticHyperscript(tag, attrs, ...children) {
 
 const runtime = {
   prepareStyle,
+  [prepareStyle.name]: prepareStyle,
   scopeSearch,
+  [scopeSearch.name]: scopeSearch,
   inverted_section,
+  [inverted_section.name]: inverted_section,
   partial_node,
+  [partial_node.name]: partial_node,
   section,
+  [section.name]: section,
   staticHyperscript,
+  [staticHyperscript.name]: staticHyperscript,
 }
 
 function RT(f) {

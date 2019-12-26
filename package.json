@@ -20,20 +20,18 @@
   "homepage": "https://github.com/zemlanin/schwartzman",
   "devDependencies": {
     "babel": "^6.5.2",
-    "babel-cli": "^6.14.0",
     "babel-core": "^6.14.0",
-    "babel-loader": "^6.2.5",
+    "babel-loader": "^7.1.5",
     "babel-preset-es2015": "^6.14.0",
     "canopy": "^0.3.0",
-    "lodash.range": "^3.0.1",
-    "mocha": "^2.3.3",
-    "mockery": "2.1.0",
+    "mocha": "^6.2.2",
+    "mockery": "^2.1.0",
     "mustache": "^3.2.0",
-    "pegjs": "^0.9.0",
     "react": "^16.0.0",
     "react-dom": "^16.0.0",
-    "semver": "5.4.1",
-    "webpack": "^1.12.2"
+    "semver": "^5.4.1",
+    "webpack": "^4.41.4",
+    "webpack-cli": "^3.3.10"
   },
   "dependencies": {
     "loader-utils": "^1.2.3"

@@ -2,26 +2,30 @@ var webpack = require("webpack");
 var path = require('path');
 
 module.exports = {
+  mode: 'production',
   entry: {
-    schwartzman: "schwartzman"
+    schwartzman: path.resolve(__dirname, "src", "schwartzman.js"),
   },
   output: {
-    path: 'dist/',
+    path: path.resolve(__dirname, 'dist'),
     filename: "[name].js",
     library: 'schwartzman',
     libraryTarget: 'umd',
+    globalObject: 'this'
   },
   module: {
-    loaders: [
-      {test: /\.jsx?$/, exclude: /(node_modules)|(baselib)/, loader: 'babel-loader'}
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /(node_modules)|(baselib)/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['babel-preset-es2015']
+          }
+        }
+      }
     ],
-  },
-  resolve: {
-    root: path.join(__dirname, 'src'),
-    modulesDirectories: [
-      path.resolve(__dirname, 'src'),
-    ],
-    extensions: ['.js', ''],
   },
   externals: [
     'loader-utils',
