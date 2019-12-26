@@ -5,37 +5,34 @@ var semver = require("semver")
 var assert = require("assert")
 var schwartzman = require("../dist/schwartzman").bind({
   cacheble: function () {},
-  query: process.env.ENABLE_LAMBDAS ? '?{lambdas: true}' : ''
+  query: '?{prelude: false, requireName: "../dist/schwartzman"}'
 })
 
 describe('rendering', function () {
   var React, ReactDOMServer
-  if (process.env.REACT_VERSION) {
-    before(function () {
-      mockery.enable({
-        warnOnReplace: false,
-        warnOnUnregistered: false
-      })
 
-      var peerReact = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react')
-      var peerReactDOM = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom')
-      var peerReactDOMServer = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom/server')
+  before(function () {
+    mockery.enable({
+      warnOnReplace: false,
+      warnOnUnregistered: false
+    })
 
-      mockery.registerMock('react', peerReact);
-      mockery.registerMock('react-dom', peerReactDOM);
-      mockery.registerMock('react-dom/server', peerReactDOMServer);
+    if (process.env.REACT_VERSION) {
+      mockery.registerMock('react', require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react'));
+      mockery.registerMock('react-dom', require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom'));
+      mockery.registerMock('react-dom/server', require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom/server'));
 
       React = require('react')
       ReactDOMServer = require('react-dom/server')
-    })
+    } else {
+      React = require('react')
+      ReactDOMServer = require('react-dom/server')
+    }
+  })
 
-    after(function () {
-      mockery.disable()
-    })
-  } else {
-    React = require('react')
-    ReactDOMServer = require('react-dom/server')
-  }
+  after(function () {
+    mockery.disable()
+  })
 
   it('classnames without commas', function () {
     var tmpl = eval(schwartzman(
@@ -145,7 +142,7 @@ describe('rendering', function () {
       )
 
       assert.equal(
-        '<div>[]()</div>',
+        '<div>()</div>',
         ReactDOMServer.renderToStaticMarkup(
           React.createElement(
             tmpl,
@@ -234,6 +231,48 @@ describe('rendering', function () {
           React.createElement(
             tmpl,
             { user: [{}, {}] }
+          )
+        )
+      )
+    })
+
+    it('lambda', function () {
+      assert.equal(
+        '<div>ok()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: function () { return function (text, render) { return "ok" } } }
+          )
+        )
+      )
+
+      assert.equal(
+        '<div><i>ok</i>()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: function () { return function (text, render) { return "<i>ok</i>" } } }
+          )
+        )
+      )
+
+      assert.equal(
+        '<div><i>[]</i>()</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: function () { return function (text, render) { return "<i>" + render(text) + "</i>" } } }
+          )
+        )
+      )
+
+      assert.equal(
+        '<div><i>[Anatoly Dyatlov]</i>(Anatoly Dyatlov)</div>',
+        ReactDOMServer.renderToStaticMarkup(
+          React.createElement(
+            tmpl,
+            { user: function () { return function (text, render) { return "<i>" + render(text) + "</i>" } }, name: "Anatoly Dyatlov" }
           )
         )
       )

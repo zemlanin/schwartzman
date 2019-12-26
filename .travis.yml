@@ -4,28 +4,23 @@ node_js:
   - 6
   - 12
 before_install:
-  - NPM_V=$(npm -v); if [[ ${NPM_V:0:1} == "2" ]]; then npm install -g npm@5; fi
+  - NPM_V=$(npm -v); if [[ ${NPM_V:0:1} < "5" ]]; then npm install -g npm@5; fi
 install:
   - '[ -z "$REACT_VERSION" ] || npm run peer:react -- $REACT_VERSION'
   - npm install
 env:
   -
-  - ENABLE_LAMBDAS=1
   - REACT_VERSION=0.14.3
   - REACT_VERSION=15.6.1
   - REACT_VERSION=16.0.0
 matrix:
   exclude:
   - node_js: 4
-    env: ENABLE_LAMBDAS=1
-  - node_js: 4
     env: REACT_VERSION=0.14.3
   - node_js: 4
     env: REACT_VERSION=15.6.1
   - node_js: 4
     env: REACT_VERSION=16.0.0
-  - node_js: 6
-    env: ENABLE_LAMBDAS=1
   - node_js: 6
     env: REACT_VERSION=0.14.3
   - node_js: 6

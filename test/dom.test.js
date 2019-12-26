@@ -1,10 +1,9 @@
 'use strict'
 
 var assert = require("assert")
-var mockery = require("mockery")
 var schwartzman = require("../dist/schwartzman").bind({
   cacheble: function () {},
-  query: process.env.ENABLE_LAMBDAS ? '?{lambdas: true}' : ''
+  query: '?{prelude: "var h = function () {}", requireName: "../dist/schwartzman"}'
 })
 var LL = require("../dist/schwartzman").lowLevel
 
@@ -21,25 +20,6 @@ function parseAndCompile(tmpl, v) {
 }
 
 describe('schwartzman', function() {
-  if (process.env.REACT_VERSION) {
-    before(function () {
-      mockery.enable({
-        warnOnReplace: false,
-        warnOnUnregistered: false
-      })
-
-      var peerReact = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react')
-      var peerReactDOM = require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom')
-
-      mockery.registerMock('react', peerReact);
-      mockery.registerMock('react-dom', peerReactDOM);
-    })
-
-    after(function () {
-      mockery.disable()
-    })
-  }
-
   describe('compileAttrs', function () {
     it('empty arg returns an object', function () {
       assert.deepEqual(LL.compileAttrs({varName: 'props'}, '', {}), '')
@@ -188,6 +168,15 @@ describe('schwartzman', function() {
     })
   })
 
+  describe('compileAny', function () {
+    it('compiles single mustache', function () {
+      assert.equal(
+        parseAndCompile("{{name}}"),
+        'props.name'
+      )
+    })
+  })
+
   describe('compileDOM', function () {
     it('compiles single simple node', function () {
       assert.equal(
@@ -287,31 +276,31 @@ describe('schwartzman', function() {
 
       assert.equal(
         parseAndCompile('<p style={{kek}}></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("p",{"style":prepareStyle(props.kek)})' // loses space because of replace inside a test
+        'h("p",{"style":rt.prepareStyle(props.kek)})' // loses space because of replace inside a test
       )
 
       assert.equal(
         parseAndCompile('<p style="{{lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("p",{"style":prepareStyle(props.lol)})' // loses space because of replace inside a test
+        'h("p",{"style":rt.prepareStyle(props.lol)})' // loses space because of replace inside a test
       )
 
       assert.equal(
         parseAndCompile('<p style="{{rofl}}; display: inline-block"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("p",{"style":prepareStyle(props.rofl+";display:inline-block")})' // loses space because of replace inside a test
+        'h("p",{"style":rt.prepareStyle(props.rofl+";display:inline-block")})' // loses space because of replace inside a test
       )
     })
 
     it('compiles section node inside attr value', function () {
       assert.equal(
         parseAndCompile('<p lol="test {{#lol}}fest{{/lol}}"></p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("p",{"lol":"test"+(section([props],"lol",function(lol){return("fest")},"fest")||\'\')})' // loses space because of replace inside a test
+        'h("p",{"lol":"test"+(rt.section(h,render,[props],"lol",function(lol){return("fest")},"fest")||\'\')})' // loses space because of replace inside a test
       )
     })
 
     it('compiles nested section nodes', function () {
       assert.equal(
         parseAndCompile('<div>{{#people}}<input {{#checked}}checked{{/checked}}/>{{/people}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("div",null,section([props],"people",function(people){return(h("input",{"checked":!!scs([people,props],"checked")}))},"<input{{#checked}}checked{{/checked}}/>"))'
+        'h("div",null,rt.section(h,render,[props],"people",function(people){return(h("input",{"checked":!!rt.scopeSearch([people,props],"checked")}))},"<input{{#checked}}checked{{/checked}}/>"))'
       )
     })
   })
@@ -342,47 +331,47 @@ describe('schwartzman', function() {
     it('compiles section node with text inside', function () {
       assert.equal(
         parseAndCompile('{{#people}}x{{/people}}', {varName: 'props'}).replace(/\s+/g, ''),
-        'section([props],"people",function(people){return("x")},"x")'
+        'rt.section(h,render,[props],"people",function(people){return("x")},"x")'
       )
 
       assert.equal(
         parseAndCompile('<p>{{#people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("p",null,section([props],"people",function(people){return("x")},"x"))'
+        'h("p",null,rt.section(h,render,[props],"people",function(people){return("x")},"x"))'
       )
     })
 
     it('compiles section node with mustache inside', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{name}},{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("span",null,section([props],"people",function(people){return[scs([people,props],"name"),","]},"{{name}},"))'
+        'h("span",null,rt.section(h,render,[props],"people",function(people){return[rt.scopeSearch([people,props],"name"),","]},"{{name}},"))'
       )
     })
 
     it('compiles section node with dom inside', function () {
       assert.equal(
         parseAndCompile('<ul>{{#people}}<li>{{name}}</li>{{/people}}</ul>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("ul",null,section([props],"people",function(people){return(h("li",null,scs([people,props],"name")))},"<li>{{name}}</li>"))'
+        'h("ul",null,rt.section(h,render,[props],"people",function(people){return(h("li",null,rt.scopeSearch([people,props],"name")))},"<li>{{name}}</li>"))'
       )
     })
 
     it('compiles inverted section node with text inside', function () {
       assert.equal(
         parseAndCompile('<p>{{^people}}x{{/people}}</p>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("p",null,inverted_section([props],"people",function(){return("x")}))'
+        'h("p",null,rt.inverted_section([props],"people",function(){return("x")}))'
       )
     })
 
     it('compiles nested section nodes', function () {
       assert.equal(
         parseAndCompile('<span>{{#people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("span",null,section([props],"people",function(people){return(section([people,props],"phone",function(phone){return(scs([phone,people,props],"local"))},"{{local}}"))},"{{#phone}}{{local}}{{/phone}}"))'
+        'h("span",null,rt.section(h,render,[props],"people",function(people){return(rt.section(h,render,[people,props],"phone",function(phone){return(rt.scopeSearch([phone,people,props],"local"))},"{{local}}"))},"{{#phone}}{{local}}{{/phone}}"))'
       )
     })
 
     it('compiles nested inverted section nodes', function () {
       assert.equal(
         parseAndCompile('<span>{{^people}}{{#phone}}{{local}}{{/phone}}{{/people}}</span>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("span",null,inverted_section([props],"people",function(){return(section([props],"phone",function(phone){return(scs([phone,props],"local"))},"{{local}}"))}))'
+        'h("span",null,rt.inverted_section([props],"people",function(){return(rt.section(h,render,[props],"phone",function(phone){return(rt.scopeSearch([phone,props],"local"))},"{{local}}"))}))'
       )
     })
 
@@ -430,12 +419,12 @@ describe('schwartzman', function() {
     it('compiles partial node', function () {
       assert.equal(
         parseAndCompile('<div>{{> amp.jsx.mustache }}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("div",null,partial_node(require("amp.jsx.mustache"),props))'
+        'h("div",null,rt.partial_node(h,require("amp.jsx.mustache"),props))'
       )
 
       assert.equal(
         parseAndCompile('<div>{{#obj}}{{> amp.jsx.mustache }}{{/obj}}</div>', {varName: 'props'}).replace(/\s+/g, ''),
-        'h("div",null,section([props],"obj",function(obj){return(partial_node(require("amp.jsx.mustache"),obj))},"{{>amp.jsx.mustache}}"))'
+        'h("div",null,rt.section(h,render,[props],"obj",function(obj){return(rt.partial_node(h,require("amp.jsx.mustache"),obj))},"{{>amp.jsx.mustache}}"))'
       )
     })
   })

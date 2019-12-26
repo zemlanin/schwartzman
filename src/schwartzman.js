@@ -3,19 +3,139 @@ import {parseQuery} from 'loader-utils'
 
 let id = 0
 const HYPERSCRIPT = "h"
-const RUNTIME_DEPENDENCIES = {
-  prepareStyle: prepareStyle.name,
-  scs: "scs",
-  section: "section",
-  inverted_section: "inverted_section",
-  partial_node: "partial_node",
+
+function isArray(obj) { return !!(obj.length !== void 0 && obj.map) }
+function isFunction(obj) { return !!(obj.constructor && obj.call && obj.apply) }
+function isObject(obj) { return !!(typeof obj === 'object' && obj != null) }
+
+function scopeSearch(scopes, name) {
+  var possibleScope, result, keyInScope
+  var namePath = name.split('.')
+
+  for (var i = 0; i < scopes.length; i++) {
+    if (isObject(scopes[i]) && !isArray(scopes[i]) && !isFunction(scopes[i])) {
+      possibleScope = scopes[i]
+    } else {
+      continue
+    }
+
+    result = possibleScope
+    keyInScope = false
+
+    for (var n = 0; n < namePath.length && result != undefined; n++) {
+      keyInScope = namePath[n] in result
+
+      if (keyInScope) {
+        result = result[namePath[n]]
+      }
+    }
+
+    if (keyInScope) { return result }
+  }
+
+  return null
+}
+
+function inverted_section(scopes, varName, fn) {
+  var obj = scopeSearch(scopes, varName)
+  if (!obj || isArray(obj) && obj.length === 0) {
+    return fn()
+  } else {
+    return null
+  }
+}
+
+function partial_node(h, module, props) {
+  if (!module) { return null }
+
+  if (module.__esModule) { return h(module.default, props) }
+
+  return h(module, props)
+}
+
+function includeKey(v, index) {
+  if (v.key === undefined) { v.key = index }
+  return v
+}
+
+function section(h, render, scopes, varName, fn, raw) {
+  var lambdaFn, lambdaRes, parsedRes
+  var obj = scopeSearch(scopes, varName)
+
+  if (obj) {
+    if (isArray(obj)) {
+      return obj.length ? obj.map(includeKey).map(fn) : null
+    }
+
+    if (isFunction(obj)) {
+      lambdaFn = obj()
+
+      if (!lambdaFn || !isFunction(lambdaFn)) {
+        return null
+      }
+
+      lambdaRes = lambdaFn(raw, function (text) { return render(scopes, varName, text) })
+
+      if (!lambdaRes) {
+        return null
+      }
+
+      return render(scopes, varName, lambdaRes, h)
+    }
+
+    return fn(obj)
+  } else {
+    return null
+  }
+}
+
+function staticStyle(style) {
+  return Object.keys(style).reduce((acc, key) => {
+    return key.replace(/([A-Z])/g, upperCaseToDash) + ":" + style[key]
+  }).join(";")
+}
+
+function staticHyperscript(tag, attrs, ...children) {
+  const compiledAttrs = attrs
+    ? Object.keys(attrs).filter(Boolean).reduce((acc, key) => {
+      const value = attrs[key]
+
+      if (!value || isObject(value) && Object.keys().length === 0) {
+        return key
+      }
+
+      if (key === 'style') {
+        return key + '=' + JSON.stringify(staticStyle(value))
+      } else {
+        return key + '=' + JSON.stringify(value)
+      }
+    }, []).join(' ')
+    : ''
+
+  const compiledChildren = children.filter(Boolean).join('')
+
+  return `<${tag}${compiledAttrs ? ' ' + compiledAttrs : ''}>${compiledChildren}</${tag}>`
+}
+
+const runtime = {
+  prepareStyle,
+  scopeSearch,
+  inverted_section,
+  partial_node,
+  section,
+  staticHyperscript,
+}
+
+function RT(f) {
+  if (runtime[f.name]) {
+    return "rt." + f.name
+  }
 }
 
 function createContext (prevContext, key, value) {
   var newContext = {
     varName: prevContext.varName,
     scopes: prevContext.scopes,
-    dependencies: prevContext.dependencies,
     __plainScopeNames: prevContext.__plainScopeNames,
     __stringifyChildren: prevContext.__stringifyChildren,
   }
@@ -63,15 +183,6 @@ function compileAny(nodesTree, context) {
   }
 }
 
-function addDependency(context, dependency) {
-  if (context && context.dependencies && !context.dependencies[dependency]) {
-    context.dependencies[dependency] = 1
-  }
-  if (dependency === RUNTIME_DEPENDENCIES.section || dependency === RUNTIME_DEPENDENCIES.inverted_section) {
-    addDependency(context, RUNTIME_DEPENDENCIES.scs)
-  }
-}
-
 function compileMustache(nodesTree, context={}) {
   var code = 'null'
   var varName
@@ -84,8 +195,7 @@ function compileMustache(nodesTree, context={}) {
     if (scopes.length === 1) {
       code = `props.${varName}`
     } else {
-      addDependency(context, RUNTIME_DEPENDENCIES.scs)
-      code = `${RUNTIME_DEPENDENCIES.scs}([${scopes.join(',')}], "${varName}")`
+      code = `${RT(scopeSearch)}([${scopes.join(',')}], "${varName}")`
     }
   } else if (nodesTree.section_node) {
     varName = nodesTree.section_node.var_name
@@ -101,14 +211,12 @@ function compileMustache(nodesTree, context={}) {
         createContext(context, 'scopes', [newScope].concat(scopes))
       ).code)
 
-      addDependency(context, RUNTIME_DEPENDENCIES.section)
-
       if (children.length === 1) {
-        code = `${RUNTIME_DEPENDENCIES.section}([${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildren}) }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
+        code = `${RT(section)}(h, render, [${scopes.join(',')}], "${varName}", function(${newScope}){ return (${compiledChildren}) }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       } else if (context.__stringifyChildren) {
-        code = `${RUNTIME_DEPENDENCIES.section}([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}].join('') }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
+        code = `${RT(section)}(h, render, [${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}].join('') }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       } else {
-        code = `${RUNTIME_DEPENDENCIES.section}([${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}] }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
+        code = `${RT(section)}(h, render, [${scopes.join(',')}], "${varName}", function(${newScope}){ return [${compiledChildren}] }, ${JSON.stringify(nodesTree.section_node.expr_node.text)})`
       }
 
       if (context.__stringifyChildren) { code = `(${code} || '')` }
@@ -120,13 +228,12 @@ function compileMustache(nodesTree, context={}) {
     // TODO: wrap text nodes in span
     if (children && children.length) {
       compiledChildren = children.map((n, index) => compileAny(n, context).code)
-      addDependency(context, RUNTIME_DEPENDENCIES.inverted_section)
       if (children.length === 1) {
-        code = `${RUNTIME_DEPENDENCIES.inverted_section}([${scopes.join(',')}], "${varName}", function(){ return (${compiledChildren}) })`
+        code = `${RT(inverted_section)}([${scopes.join(',')}], "${varName}", function(){ return (${compiledChildren}) })`
       } else if (context.__stringifyChildren) {
-        code = `${RUNTIME_DEPENDENCIES.inverted_section}([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}].join('') })`
+        code = `${RT(inverted_section)}([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}].join('') })`
       } else {
-        code = `${RUNTIME_DEPENDENCIES.inverted_section}([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}] })`
+        code = `${RT(inverted_section)}([${scopes.join(',')}], "${varName}", function(){ return [${compiledChildren}] })`
       }
 
       if (context.__stringifyChildren) { code = `(${code} || '')` }
@@ -134,14 +241,17 @@ function compileMustache(nodesTree, context={}) {
   } else if (nodesTree.commented_node) {
     code = '// ' + nodesTree.commented_node.comment_text_node.text.replace(ESCAPED_CURLY_REGEX, "$1").replace(/\n+/g, ' ') + '\n'
   } else if (nodesTree.partial_node) {
-    addDependency(context, RUNTIME_DEPENDENCIES.partial_node)
-    code = `${RUNTIME_DEPENDENCIES.partial_node}(require("${nodesTree.partial_node.path_node.text}"), ${scopes[0]})`
+    code = `${RT(partial_node)}(${HYPERSCRIPT}, require("${nodesTree.partial_node.path_node.text}"), ${scopes[0]})`
   }
   return {code, escaped: isEscapedMustache(nodesTree)}
 }
 
 function dashToUpperCase(match, letter, offset, string) {
   return letter.toUpperCase()
+}
+
+function upperCaseToDash(match, letter, offset, string) {
+  return "-" + letter.toLowerCase()
 }
 
 function prepareStyle(styleString) {
@@ -183,8 +293,7 @@ function compileAttrsMustache(context, node) {
     if (scopes.length == 1) {
       code = `"${child}": !!props.${varName}`
     } else {
-      addDependency(context, RUNTIME_DEPENDENCIES.scs)
-      code = `"${child}": !!${RUNTIME_DEPENDENCIES.scs}([${scopes.join(',')}], "${varName}")`
+      code = `"${child}": !!${RT(scopeSearch)}([${scopes.join(',')}], "${varName}")`
     }
   } else if (node.attr_inverted_section_node) {
     let varName = node.attr_inverted_section_node.var_name
@@ -192,8 +301,7 @@ function compileAttrsMustache(context, node) {
     if (scopes.length == 1) {
       code = `"${child}": !props.${varName}`
     } else {
-      addDependency(context, RUNTIME_DEPENDENCIES.scs)
-      code = `"${child}": !${RUNTIME_DEPENDENCIES.scs}([${scopes.join(',')}], "${varName}")`
+      code = `"${child}": !${RT(scopeSearch)}([${scopes.join(',')}], "${varName}")`
     }
   } else if (node.commented_node) {
     code = '// ' + node.commented_node.text_node.text.replace('\n', ' ') + '\n'
@@ -239,8 +347,7 @@ function compileAttrs(context, acc, node) {
 
   if (attrKey === 'style') {
     if (mustacheInValue) {
-      attrValue = RUNTIME_DEPENDENCIES.prepareStyle + "(" + attrValue + ")"
-      addDependency(context, RUNTIME_DEPENDENCIES.prepareStyle)
+      attrValue = RT(prepareStyle) + "(" + attrValue + ")"
     } else {
       attrValue = JSON.stringify(prepareStyle(value.text))
     }
@@ -316,102 +423,6 @@ function compileDOM(nodesTree, context={}) {
   }
 
   return {code: `${HYPERSCRIPT}("${tagName}", ${attrs})\n`}
-}
-
-function dependencyMapper(lambdas, name) {
-  switch (name) {
-    case RUNTIME_DEPENDENCIES.scs:  // scopes search
-      return `function isArray(obj) { return !!(obj.length !== void 0 && obj.map) }
-      function isFunction(obj) { return !!(obj.constructor && obj.call && obj.apply) }
-      function isObject(obj) { return !!(typeof obj === 'object' && obj != null) }
-
-      function ${RUNTIME_DEPENDENCIES.scs}(scopes, name) {
-        var possibleScope, result, keyInScope
-        var namePath = name.split('.')
-
-        for (var i = 0; i < scopes.length; i++) {
-          if (isObject(scopes[i]) && !isArray(scopes[i]) && !isFunction(scopes[i])) {
-            possibleScope = scopes[i]
-          } else {
-            continue
-          }
-
-          result = possibleScope
-          keyInScope = false
-
-          for (var n = 0; n < namePath.length && result != undefined; n++) {
-            keyInScope = namePath[n] in result
-
-            if (keyInScope) {
-              result = result[namePath[n]]
-            }
-          }
-
-          if (keyInScope) { return result }
-        }
-
-        return null
-      }`
-    case RUNTIME_DEPENDENCIES.section:
-      return `function includeKey(v, index) {
-          if (v.key === undefined) { v.key = index }
-          return v
-        }
-
-      ${lambdas ?
-        `function render(scopes, varName, raw) {
-          var ll = require('schwartzman').lowLevel
-          var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})
-
-          var props = {}
-          for (var i = scopes.length - 1; i >= 0; i--) {
-            for (var attr in scopes[i]) { props[attr] = scopes[i][attr] }
-          }
-
-          if (parsed.elements.length == 1) {
-            return eval(ll.compileAny(parsed.elements[0], {varName: 'props', scopes: ['props']}).code)
-          } else {
-            return parsed.elements.map(function (el) { return eval(ll.compileAny(el, {varName: 'props', scopes: ['props']}).code)})
-          }
-        }` : ''
-      }
-
-        function ${RUNTIME_DEPENDENCIES.section}(scopes, varName, fn, raw) {
-          var obj = ${RUNTIME_DEPENDENCIES.scs}(scopes, varName)
-          if (obj) {
-            if (isArray(obj)) {
-              return obj.length ? obj.map(includeKey).map(fn) : null
-      ${lambdas ?
-           `} else if (isFunction(obj)) {
-              return obj(raw, render.bind(null, scopes, varName))` : ''
-      }
-            } else {
-              return fn(obj)
-            }
-          } else {
-            return null
-          }
-        }`
-    case RUNTIME_DEPENDENCIES.inverted_section:
-      return `function ${RUNTIME_DEPENDENCIES.inverted_section}(scopes, varName, fn) {
-        var obj = ${RUNTIME_DEPENDENCIES.scs}(scopes, varName)
-        if (!obj || obj.length === 0) {
-          return fn()
-        } else {
-          return null
-        }
-      }`
-    case RUNTIME_DEPENDENCIES.partial_node:
-      return `function ${RUNTIME_DEPENDENCIES.partial_node}(module, props) {
-        if (!module) { return null }
-
-        if (module.__esModule) { return ${HYPERSCRIPT}(module.default, props) }
-
-        return ${HYPERSCRIPT}(module, props)
-      }`
-    case RUNTIME_DEPENDENCIES.prepareStyle:
-      return dashToUpperCase.toString() + ";" + prepareStyle.toString()
-  }
 }
 
 function strip_whitespace_nodes(nodes) {
@@ -531,28 +542,21 @@ function objectKeys(obj) {
 function schwartzman (content) {
   if (this && this.cacheable) { this.cacheable() }
 
-  const lambdas = !!(this && this.query && parseQuery(this.query).lambdas)
   const prelude = (this && this.query && parseQuery(this.query).prelude) || `var ${HYPERSCRIPT} = require('react').createElement;`
+  const requireName = (this && this.query && parseQuery(this.query).requireName) || "schwartzman"
   const parsedTree = parse(content, {actions, types})
   let result
-  let dependencies = {}
-
-  if (lambdas && parsedTree.elements.length) {
-    for (const dep in RUNTIME_DEPENDENCIES) {
-      dependencies[RUNTIME_DEPENDENCIES] = 1
-    }
-  }
 
   switch (parsedTree.elements.length) {
     case 0:
       result = 'null'
       break
     case 1:
-      result = '(' + compileAny(parsedTree.elements[0], {varName: 'props', scopes: ['props'], dependencies}).code + ')'
+      result = '(' + compileAny(parsedTree.elements[0], {varName: 'props', scopes: ['props']}).code + ')'
       break
     default:
       result = '[(' + parsedTree.elements.map(
-        el => compileAny(el, {varName: 'props', scopes: ['props'], dependencies}).code
+        el => compileAny(el, {varName: 'props', scopes: ['props']}).code
       ).join('),(') + ')]'
   }
 
@@ -561,7 +565,40 @@ function schwartzman (content) {
     // compiled with schwartzman ${VERSION}
     ${parsedTree.elements.length ? prelude : ''}
 
-    ${objectKeys(dependencies).map(dependencyMapper.bind(null, lambdas)).join('\n')}
+    var sch = require(${JSON.stringify(requireName)})
+    var rt = sch.runtime
+    var ll = sch.lowLevel
+
+    function singleRender(h, props, element) {
+      h = h || ${RT(staticHyperscript)}
+
+      var code = ll.compileAny(element, { varName: 'props', scopes: ['props'] }).code
+
+      var result = eval(code)
+
+      if (result == null) {
+        return ''
+      }
+
+      return result
+    }
+
+    function render(scopes, varName, raw, h) {
+      var parsed = ll.PEGparse(raw, {actions: ll.PEGactions, types: ll.PEGtypes})
+
+      var props = {}
+      for (var i = scopes.length - 1; i >= 0; i--) {
+        for (var attr in scopes[i]) { props[attr] = scopes[i][attr] }
+      }
+
+      if (parsed.elements.length == 1) {
+        return singleRender(h, props, parsed.elements[0])
+      } else {
+        return parsed.elements.map(function (el) {
+          return singleRender(h, props, el)
+        }).filter(Boolean).join('')
+      }
+    }
 
     module.exports = function (props) { return ${result} }
     module.exports.raw = ${JSON.stringify(content)}
@@ -572,6 +609,7 @@ function schwartzman (content) {
 module.exports = schwartzman
 module.exports.schwartzman = schwartzman
 module.exports.VERSION = VERSION
+module.exports.runtime = runtime
 module.exports.lowLevel = {
   compileAny,
   compileDOM,

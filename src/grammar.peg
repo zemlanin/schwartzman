@@ -15,7 +15,7 @@ attr_section_node           <- open_section_node var_name? close_section_node %v
 attr_inverted_section_node  <- open_inverted_section_node var_name? close_section_node %validate_mustache
 
 expr_node       <- dom_node / mustache_node / whitespace_node / text_node
-mustache_node   <- (!"\\" variable_node &.?) <MustacheNode> / (!"\\" section_node &.?) <MustacheNode> / (!"\\" inverted_section_node &.?) <MustacheNode> / (!"\\" commented_node &.?) <MustacheNode> / (!"\\" partial_node &.?) <MustacheNode> # TODO: SetDelimiterNode | LambdaNode
+mustache_node   <- (!"\\" variable_node &.?) <MustacheNode> / (!"\\" section_node &.?) <MustacheNode> / (!"\\" inverted_section_node &.?) <MustacheNode> / (!"\\" commented_node &.?) <MustacheNode> / (!"\\" partial_node &.?) <MustacheNode> # TODO: SetDelimiterNode
 
 variable_node               <- regular_variable_node / escaped_variable_node
 regular_variable_node       <- "{{" whitespace? var_name whitespace? "}}"
