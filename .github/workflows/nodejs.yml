@@ -1,0 +1,39 @@
+name: Node CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [6.x, 12.x, 13.x]
+        react-version: ["", "0.14.3", "15.6.1", "16.0.0"]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: install npm@5
+      if: matrix.node-version == "6.x"
+      run: |
+        npm install -g npm@5
+    - name: install react
+      if: matrix.react-version && matrix.node-version == '13.x'
+      run: |
+        npm run peer:react -- ${{ matrix.react-version }}
+    - name: npm install, build, and test
+      run: |
+        npm ci
+        npm run build --if-present
+        npm test
+      env:
+        CI: true
+    - name: lint
+      if: matrix.react-version == '' && matrix.node-version == '13.x'
+      run: |
+        npm run lint
