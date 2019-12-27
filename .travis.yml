@@ -3,6 +3,8 @@ node_js:
   - 6
   - lts/*
   - node
+before_install:
+  - NPM_V=$(npm -v); if [[ ${NPM_V:0:1} == "3" ]]; then npm install -g npm@5; fi
 install:
   - '[ -z "$REACT_VERSION" ] || npm run peer:react -- $REACT_VERSION'
   - npm ci
