@@ -1,39 +1,53 @@
-'use strict'
+"use strict";
 
-var mockery = require("mockery")
-var semver = require("semver")
-var assert = require("assert")
-var mustache = require("mustache")
+var mockery = require("mockery");
+var assert = require("assert");
+var mustache = require("mustache");
 var schwartzman = require("../dist/schwartzman").bind({
-  cacheble: function () {},
+  cacheble: function() {},
   query: '?{prelude: false, requireName: "../dist/schwartzman"}'
-})
+});
 
-describe('plain-text renderer compatability', function () {
-  var React, ReactDOMServer
+describe("plain-text renderer compatability", function() {
+  var React, ReactDOMServer;
 
-  before(function () {
+  before(function() {
     mockery.enable({
       warnOnReplace: false,
       warnOnUnregistered: false
-    })
+    });
 
     if (process.env.REACT_VERSION) {
-      mockery.registerMock('react', require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react'));
-      mockery.registerMock('react-dom', require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom'));
-      mockery.registerMock('react-dom/server', require('./peer/react-'+process.env.REACT_VERSION+'/lib/node_modules/react-dom/server'));
+      mockery.registerMock(
+        "react",
+        require("./peer/react-" +
+          process.env.REACT_VERSION +
+          "/lib/node_modules/react")
+      );
+      mockery.registerMock(
+        "react-dom",
+        require("./peer/react-" +
+          process.env.REACT_VERSION +
+          "/lib/node_modules/react-dom")
+      );
+      mockery.registerMock(
+        "react-dom/server",
+        require("./peer/react-" +
+          process.env.REACT_VERSION +
+          "/lib/node_modules/react-dom/server")
+      );
 
-      React = require('react')
-      ReactDOMServer = require('react-dom/server')
+      React = require("react");
+      ReactDOMServer = require("react-dom/server");
     } else {
-      React = require('react')
-      ReactDOMServer = require('react-dom/server')
+      React = require("react");
+      ReactDOMServer = require("react-dom/server");
     }
-  })
+  });
 
-  after(function () {
-    mockery.disable()
-  })
+  after(function() {
+    mockery.disable();
+  });
 
   var templates = [
     "<div></div>",
@@ -43,8 +57,8 @@ describe('plain-text renderer compatability', function () {
     "<ul>{{#user}}<li>{{name}}</li>{{/user}}</ul>",
     "<ul>{{#user}}<li>{{name}}</li>{{/user}}<i>{{name}}</i></ul>",
     "<b>{{^great}}Not terrible{{/great}}</b>",
-    "<b>{{^great}}{{name}}{{/great}}</b>",
-  ]
+    "<b>{{^great}}{{name}}{{/great}}</b>"
+  ];
 
   var props = [
     {},
@@ -63,19 +77,49 @@ describe('plain-text renderer compatability', function () {
     { great: [] },
     { great: [], name: "Alex" },
     { great: true, name: "Alex" },
-    { fn: 0, great: function _0() { return function () {} }},
-    { fn: 1, user: function _1() { return function () {} }},
-    { fn: 2, user: function _2() { return function () { return "ok" } }},
-    { fn: 3, user: function _3() { return function (text, render) { return "<u>" + render(text) + "</u>" } }},
-    { fn: 4, user: function _4() { return function (text, render) { return "<u>" + render(text) + "</u>" } }, name: "Andrew" },
-  ]
+    {
+      fn: 0,
+      great: function _0() {
+        return function() {};
+      }
+    },
+    {
+      fn: 1,
+      user: function _1() {
+        return function() {};
+      }
+    },
+    {
+      fn: 2,
+      user: function _2() {
+        return function() {
+          return "ok";
+        };
+      }
+    },
+    {
+      fn: 3,
+      user: function _3() {
+        return function(text, render) {
+          return "<u>" + render(text) + "</u>";
+        };
+      }
+    },
+    {
+      fn: 4,
+      user: function _4() {
+        return function(text, render) {
+          return "<u>" + render(text) + "</u>";
+        };
+      },
+      name: "Andrew"
+    }
+  ];
 
-  templates.forEach(function (tmpl) {
-    var compiledTmpl = eval(schwartzman(tmpl))
+  templates.forEach(function(tmpl) {
+    var compiledTmpl = eval(schwartzman(tmpl));
 
-    it("template: " + tmpl, function () {
-      var propsAsString
-
+    it("template: " + tmpl, function() {
       for (var i = 0; i < props.length; i++) {
         assert.equal(
           ReactDOMServer.renderToStaticMarkup(
@@ -83,8 +127,8 @@ describe('plain-text renderer compatability', function () {
           ),
           mustache.render(tmpl, props[i]),
           JSON.stringify(props[i])
-        )
+        );
       }
-    })
-  })
-})
+    });
+  });
+});

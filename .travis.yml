@@ -15,15 +15,15 @@ env:
   - REACT_VERSION=16.0.0
 matrix:
   exclude:
-  - node_js: 6
-    env: REACT_VERSION=0.14.3
-  - node_js: 6
-    env: REACT_VERSION=15.6.1
-  - node_js: 6
-    env: REACT_VERSION=16.0.0
-  - node_js: lts/*
-    env: REACT_VERSION=0.14.3
-  - node_js: lts/*
-    env: REACT_VERSION=15.6.1
-  - node_js: lts/*
-    env: REACT_VERSION=16.0.0
+    - node_js: 6
+      env: REACT_VERSION=0.14.3
+    - node_js: 6
+      env: REACT_VERSION=15.6.1
+    - node_js: 6
+      env: REACT_VERSION=16.0.0
+    - node_js: lts/*
+      env: REACT_VERSION=0.14.3
+    - node_js: lts/*
+      env: REACT_VERSION=15.6.1
+    - node_js: lts/*
+      env: REACT_VERSION=16.0.0
