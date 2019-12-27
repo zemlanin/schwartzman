@@ -578,15 +578,11 @@ function schwartzman (content) {
     function singleRender(h, props, element) {
       h = h || ${RT(staticHyperscript)}
 
-      var code = ll.compileAny(element, { varName: 'props', scopes: ['props'] }).code
+      var result = eval(
+        ll.compileAny(element, { varName: 'props', scopes: ['props'] }).code
+      )
 
-      var result = eval(code)
-
-      if (result == null) {
-        return ''
-      }
-
-      return result
+      return result == null ? '' : result
     }
 
     function render(scopes, varName, raw, h) {
