@@ -16,8 +16,8 @@
     "peer:react": "sh -c 'npm install -g --prefix test/peer/react-$0 react@$0 react-dom@$0'",
     "lint": "npm run eslint && npm run prettier -- -l",
     "fmt": "npm run eslint -- --fix && npm run prettier -- --write",
-    "prettier": "prettier \"./*.{js,yml,yaml}\" \"./{src,test}/**/*.{js,yml,yaml}\" --ignore-path=\".gitignore\"",
-    "eslint": "eslint \"./*.js\" \"./{src,test}/**/*.js\" --ignore-path=\".gitignore\""
+    "prettier": "prettier \"./*.{js,yml,yaml}\" \"./{.github,src,test}/**/*.{js,yml,yaml}\" --ignore-path=\".gitignore\"",
+    "eslint": "eslint \"./*.js\" \"./{.github,src,test}/**/*.js\" --ignore-path=\".gitignore\""
   },
   "author": "Anton Verinov <anton@verinov.com>",
   "license": "MIT",

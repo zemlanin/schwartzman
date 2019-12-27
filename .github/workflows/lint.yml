@@ -1,4 +1,4 @@
-name: Node CI
+name: Lint
 
 on: [push]
 
@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [6.x, 12.x, 13.x]
+        node-version: [13.x]
 
     steps:
       - uses: actions/checkout@v1
@@ -17,15 +17,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: install npm@5
-        if: matrix.node-version == '6.x'
-        run: |
-          npm install -g npm@5
-
-      - name: npm install, build, and test
+      - name: npm install and lint
         run: |
           npm ci
-          npm run build --if-present
-          npm test
+          npm run lint
         env:
           CI: true
