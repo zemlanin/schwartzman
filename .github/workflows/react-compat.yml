@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: 13.x
 
-      - name: install react
+      - name: install react@${{ matrix.react-version }}
         run: |
           npm run peer:react -- ${{ matrix.react-version }}
 
@@ -28,3 +28,4 @@ jobs:
           npm test
         env:
           CI: true
+          REACT_VERSION: ${{ matrix.react-version }}
