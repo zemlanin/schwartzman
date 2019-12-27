@@ -58,7 +58,13 @@
     window.module = {}
     window.process = {env: {NODE_ENV: 'test'}}
     window.require = function (name) {
-      if (name == 'loader-utils') { return {parseQuery: function () { return {lambdas: true} }} }
+      if (name == 'loader-utils') {
+        return {
+          // schwartzman <=0.9.0 used `parseQuery` to get loader options
+          parseQuery: function () { return {lambdas: true} },
+          getOptions: function () { return {} },
+        }
+      }
       if (name == 'react') { return window.React }
       if (name == 'schwartzman') { return window.module.exports }
       if (name == 'separator.jsx') { return function (props) {

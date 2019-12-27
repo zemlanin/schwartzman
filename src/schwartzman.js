@@ -1,7 +1,7 @@
 /* global VERSION */
 
-var parseQuery = require("loader-utils").parseQuery;
-var parse = require("./grammar").parse;
+const getOptions = require("loader-utils").getOptions;
+const parse = require("./grammar").parse;
 
 let id = 0;
 const HYPERSCRIPT = "h";
@@ -635,11 +635,11 @@ function schwartzman(content) {
     this.cacheable();
   }
 
+  const options = getOptions(this) || {};
+
   const prelude =
-    (this && this.query && parseQuery(this.query).prelude) ||
-    `var ${HYPERSCRIPT} = require('react').createElement;`;
-  const requireName =
-    (this && this.query && parseQuery(this.query).requireName) || "schwartzman";
+    options.prelude || `var ${HYPERSCRIPT} = require('react').createElement;`;
+  const requireName = options.requireName || "schwartzman";
   const parsedTree = parse(content, { actions, types });
   let result;
 
