@@ -1,4 +1,4 @@
-# schwartzman [![Build Status](https://travis-ci.org/zemlanin/schwartzman.svg?branch=master)](https://travis-ci.org/zemlanin/schwartzman)
+# schwartzman
 
 Webpack loader for [Mustache](https://mustache.github.io). Compiles jsx.mustache files to [ReactJS](https://facebook.github.io/react).
 
@@ -15,7 +15,7 @@ $ npm install --save-dev schwartzman
 And add to your webpack.config.js
 * `{test: /\.jsx\.mustache$/, loader: "schwartzman"}` to `module.loaders`
   * :warning: if you use [partials](https://mustache.github.io/mustache.5.html#Partials), you'll need to "wrap" this loader with `babel-loader` or any other dependency solving loader
-  
+
     `{test: /\.jsx\.mustache$/, loader: "babel-loader!schwartzman"}`
 * `'.jsx.mustache'` to `resolve.extensions`
 
