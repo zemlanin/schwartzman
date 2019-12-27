@@ -10,7 +10,6 @@
   "scripts": {
     "build": "canopy src/grammar.peg --lang js && npm run webpack",
     "prepare": "npm run build",
-    "pretest": "npm run lint",
     "test": "NODE_ENV=test mocha",
     "webpack": "webpack",
     "examples": "npm run build && webpack --config webpack.examples.config.js",
