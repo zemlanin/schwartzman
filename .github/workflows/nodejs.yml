@@ -3,12 +3,29 @@ name: Node CI
 on: [push]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+
+      - name: npm install and lint
+        run: |
+          npm ci
+          npm run lint
+        env:
+          CI: true
+
   build:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [10.x, 12.x, 13.x]
+        node-version: [10.x, 12.x, 13.x, 14.x]
 
     steps:
       - uses: actions/checkout@v1
@@ -24,3 +41,30 @@ jobs:
           npm test
         env:
           CI: true
+
+  react-compat:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        react-version: ["0.14.3", "15.6.1", "16.0.0", "16.13.1"]
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+
+      - name: install react@${{ matrix.react-version }}
+        run: |
+          npm run peer:react -- ${{ matrix.react-version }}
+
+      - name: npm install, build, and test
+        run: |
+          npm ci
+          npm run build --if-present
+          npm test
+        env:
+          CI: true
+          REACT_VERSION: ${{ matrix.react-version }}
