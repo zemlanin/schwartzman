@@ -17,7 +17,7 @@ And add to your webpack.config.js
   * :warning: if you use [partials](https://mustache.github.io/mustache.5.html#Partials), you'll need to "wrap" this loader with `babel-loader` or any other dependency solving loader
 
     `{test: /\.jsx\.mustache$/, loader: "babel-loader!schwartzman"}`
-* `'.jsx.mustache'` to `resolve.extensions`
+* `".jsx.mustache"` to `resolve.extensions`
 
 ```js
 module.exports = {
@@ -36,7 +36,7 @@ module.exports = {
   resolve: {
     extensions: [
       // ...
-      '.jsx.mustache',
+      ".jsx.mustache",
     ],
     // ...
   }
