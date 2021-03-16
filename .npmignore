@@ -3,6 +3,6 @@ test
 docs
 examples
 .babelrc
-.travis.yml
+.github
 webpack.config.js
 webpack.examples.config.js
